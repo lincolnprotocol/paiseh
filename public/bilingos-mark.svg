@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">BiLingos</title>
+  <desc id="desc">Three colourful conversation ribbons form the letter B</desc>
+  <rect width="512" height="512" rx="116" fill="#102f32"/>
+  <path d="M126 92v328" fill="none" stroke="#f7f0dc" stroke-width="62" stroke-linecap="round"/>
+  <path d="M155 112h116c72 0 121 34 121 92 0 34-18 60-51 75l42 32-70-14H155z" fill="#f46f86"/>
+  <path d="M155 279h132c72 0 116 29 116 83 0 55-44 86-116 86H155z" fill="#4fb9c2"/>
+  <path d="M155 226h122c35 0 57-9 57-27 0-19-22-28-57-28H155z" fill="#f7f0dc"/>
+  <path d="M155 337h132c35 0 57 8 57 25 0 18-22 27-57 27H155z" fill="#f7f0dc"/>
+  <path d="M116 300c50-4 90-24 118-60" fill="none" stroke="#f3c64f" stroke-width="31" stroke-linecap="round"/>
+  <circle cx="390" cy="118" r="25" fill="#f3c64f"/>
+</svg>

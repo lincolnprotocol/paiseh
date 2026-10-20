@@ -3,7 +3,10 @@
 
 import fs from 'node:fs';
 
-const TYPES = ['language', 'feature', 'bug', 'other'];
+// 'correction' lets a native speaker flag a wrong or unnatural line from inside the app. The
+// scenario data ships with a "not yet proof-read" caveat, so the fastest route to accurate content
+// is letting the people who speak it tell us, in one tap, exactly which line is off.
+const TYPES = ['language', 'feature', 'bug', 'correction', 'other'];
 
 // Strips control characters, trims and caps the length.
 const clip = (v, max) =>
@@ -17,8 +20,10 @@ export function validateFeedback(body) {
 
   const message = clip(body.message, 600);
   const language = clip(body.language, 40);
+  const phrase = clip(body.phrase, 200);
   if (type === 'language' && !language) return { error: 'no_language' };
-  if (!message && !language) return { error: 'empty' };
+  if (type === 'correction' && !phrase) return { error: 'no_phrase' };
+  if (!message && !language && !phrase) return { error: 'empty' };
 
   const rating = Number.isInteger(body.rating) && body.rating >= 1 && body.rating <= 5 ? body.rating : null;
   return {
@@ -26,6 +31,7 @@ export function validateFeedback(body) {
       type,
       language,
       message,
+      phrase,
       contact: clip(body.contact, 100),
       rating,
       appLanguage: clip(body.appLanguage, 10),

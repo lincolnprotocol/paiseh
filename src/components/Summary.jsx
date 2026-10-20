@@ -1,11 +1,21 @@
 import { useState } from 'react';
 import { speak } from '../lib/speech.js';
-import { Book, Check, Flame, Share, Speaker, Star } from './Icons.jsx';
+import { Book, Chat, Check, Share, Speaker } from './Icons.jsx';
 import Phrase from './Phrase.jsx';
 import SayIt from './SayIt.jsx';
 
-export default function Summary({ language, scenario, result, settings, onAgain, onReview, onHome }) {
-  const { xpGained, learned, streak } = result;
+export default function Summary({
+  language,
+  scenario,
+  result,
+  settings,
+  onAgain,
+  onReview,
+  onHome,
+  onReport,
+  onDrill,
+}) {
+  const { learned, targetReplies } = result;
   const [note, setNote] = useState('');
 
   async function share(p) {
@@ -17,83 +27,100 @@ export default function Summary({ language, scenario, result, settings, onAgain,
         return;
       }
       await navigator.clipboard.writeText(message);
-      setNote(`Copied. Paste it to your family chat.`);
+      setNote('Copied. Paste it to your family chat.');
     } catch (err) {
       if (err?.name !== 'AbortError') setNote('Could not share from this browser.');
     }
   }
 
   return (
-    <main className="screen">
-      <div className="scroll summary">
-        <div className="badge" aria-hidden="true">
-          <Check width={36} height={36} strokeWidth={3} />
-        </div>
-        <h1>Shiok! Session done.</h1>
-        <p className="lede">{scenario.doneLine}</p>
-
-        <div className="tiles">
-          <div className="tile">
-            <Star className="ico-star" />
-            <b>+{xpGained}</b>
-            <span>XP</span>
+    <div className="immersive">
+      <div className="immersive-body">
+        <div className="immersive-inner summary">
+          <div className="badge" aria-hidden="true">
+            <Check width={36} height={36} strokeWidth={3} />
           </div>
-          <div className="tile">
-            <Flame className="ico-flame" />
-            <b>{streak}</b>
-            <span>day streak</span>
+          <h1>Shiok! Session done.</h1>
+          <p className="lede">{scenario.doneLine}</p>
+
+          <div className="stat-grid three">
+            <div className="stat-box">
+              <Chat />
+              <b>{scenario.minutes}</b>
+              <span>minute real-life moment</span>
+            </div>
+            <div className="stat-box">
+              <Check />
+              <b>{targetReplies}</b>
+              <span>replies in {language.name}</span>
+            </div>
+            <div className="stat-box">
+              <b>{learned.length}</b>
+              <span>phrases</span>
+            </div>
           </div>
-          <div className="tile">
-            <b>{learned.length}</b>
-            <span>phrases</span>
+
+          {scenario.tip && (
+            <aside className="tip">
+              <b>Good to know</b>
+              <p lang="en">{scenario.tip}</p>
+            </aside>
+          )}
+
+          <h2 className="section-title">Real-life phrases you just learned</h2>
+          <ul className="learned">
+            {learned.map((p) => (
+              <li key={p.text}>
+                <Phrase phrase={p} lang={language.htmlLang} showRoman={settings.roman} size="lg" />
+                <span className="actions">
+                  <button
+                    className="icon-btn"
+                    aria-label={`Hear ${p.text}`}
+                    onClick={() => speak(p.text, { lang: language.id, slow: settings.slow })}
+                  >
+                    <Speaker />
+                  </button>
+                  <SayIt
+                    phrase={p}
+                    language={language}
+                    onScore={(score) => score >= 0.85 && onDrill?.('say')}
+                  />
+                  <button className="share" onClick={() => share(p)}>
+                    <Share width={16} height={16} /> Send to {language.grandma}
+                  </button>
+                  <button
+                    className="link-btn tiny"
+                    onClick={() => onReport(p.text)}
+                    title="Tell us if this line sounds unnatural"
+                  >
+                    Sounds off?
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="note" role="status">
+            {note}
+          </p>
+
+          <div className="cta">
+            <button className="primary wide" onClick={onReview}>
+              <Book width={18} height={18} /> Review these phrases
+            </button>
+            <button className="ghost wide" onClick={onAgain}>
+              Practise again
+            </button>
+            <button className="ghost wide" onClick={onHome}>
+              Pick another moment
+            </button>
           </div>
-        </div>
 
-        {scenario.tip && (
-          <aside className="tip">
-            <b>Good to know</b>
-            <p lang="en">{scenario.tip}</p>
-          </aside>
-        )}
-
-        <h2 className="section-title">Real-life phrases you just learned</h2>
-        <ul className="learned">
-          {learned.map((p) => (
-            <li key={p.text}>
-              <Phrase phrase={p} lang={language.htmlLang} showRoman={settings.roman} size="lg" />
-              <span className="actions">
-                <button
-                  className="icon-btn"
-                  aria-label={`Hear ${p.text}`}
-                  onClick={() => speak(p.text, { lang: language.id, slow: settings.slow })}
-                >
-                  <Speaker />
-                </button>
-                <SayIt phrase={p} language={language} />
-                <button className="share" onClick={() => share(p)}>
-                  <Share width={16} height={16} /> Send to {language.grandma}
-                </button>
-              </span>
-            </li>
-          ))}
-        </ul>
-        <p className="note" role="status">
-          {note}
-        </p>
-
-        <div className="cta">
-          <button className="primary wide" onClick={onReview}>
-            <Book width={18} height={18} style={{ verticalAlign: '-3px', marginRight: 8 }} />
-            Review these phrases
-          </button>
-          <button className="ghost wide" onClick={onAgain}>
-            Practise again
-          </button>
-          <button className="ghost wide" onClick={onHome}>
-            Pick another moment
-          </button>
+          <p className="note">
+            Spotted a line that a native speaker would never say? Tap “Sounds off?” — corrections go
+            straight to the team.
+          </p>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

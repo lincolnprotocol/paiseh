@@ -10,7 +10,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
 import { PollyClient, SynthesizeSpeechCommand } from '@aws-sdk/client-polly';
-import { getLanguage, languages } from '../src/data/languages.js';
+import { languages } from '../src/data/languages.js';
+import { buildNaturalSsml, normaliseVoiceRequest } from './tts.js';
 import { getScenario } from '../src/data/scenarios.js';
 import { buildSystemPrompt, buildUserPrompt, extractJson, normalizeTurn } from './prompt.js';
 import { appendFeedback, readFeedback, summarize, validateFeedback } from './feedback.js';
@@ -84,20 +85,24 @@ app.post('/api/chat', apiLimit, async (req, res) => {
   }
 });
 
-const escapeXml = (s) =>
-  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-
 const ttsCache = new Map();
 
-// Polly only covers languages marked `polly: true` (Mandarin). Others use the browser voice.
+// Polly currently covers Mandarin in this app. Profile and style are allowlisted server-side;
+// clients cannot choose arbitrary voices or inject SSML.
 app.get('/api/tts', apiLimit, async (req, res) => {
-  const language = getLanguage(String(req.query.lang ?? 'zh'));
+  const langId = String(req.query.lang ?? 'zh');
+  const language = languages.find((l) => l.id === langId);
+  if (!language) return res.status(400).json({ error: 'bad_language' });
   if (!language.polly) return res.status(404).json({ error: 'no_voice' });
 
   const text = String(req.query.text ?? '').trim().slice(0, 300);
   if (!text) return res.status(400).json({ error: 'no_text' });
-  const slow = req.query.slow === '1';
-  const key = `${language.id}:${slow ? 's' : 'n'}:${text}`;
+  const voice = normaliseVoiceRequest({
+    profile: String(req.query.profile ?? ''),
+    style: String(req.query.style ?? ''),
+    slow: req.query.slow === '1',
+  });
+  const key = `${language.id}:${voice.profile}:${voice.style}:${voice.slow ? 's' : 'n'}:${text}`;
 
   let audio = ttsCache.get(key);
   if (!audio) {
@@ -109,7 +114,7 @@ app.get('/api/tts', apiLimit, async (req, res) => {
           VoiceId: process.env.POLLY_VOICE || 'Zhiyu',
           OutputFormat: 'mp3',
           TextType: 'ssml',
-          Text: `<speak><prosody rate="${slow ? 'slow' : 'medium'}">${escapeXml(text)}</prosody></speak>`,
+          Text: buildNaturalSsml(text, voice),
         }),
       );
       audio = Buffer.from(await out.AudioStream.transformToByteArray());

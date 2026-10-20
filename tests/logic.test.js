@@ -10,11 +10,12 @@ import { similarity, verdict } from '../src/lib/similarity.js';
 import { fallbackTurn } from '../src/lib/fallback.js';
 import {
   recordSession, recordReview, gradePhrase, duePhrases, allPhrases, levelInfo, currentStreak, langState,
+  freshProgress,
 } from '../src/lib/storage.js';
 import { buildSystemPrompt, buildUserPrompt, extractJson, normalizeTurn } from '../server/prompt.js';
 import { validateFeedback, appendFeedback, readFeedback, summarize } from '../server/feedback.js';
 
-const fresh = () => ({ streak: 0, lastDay: null, settings: { roman: true, slow: false, lang: 'zh' }, langs: {}, outbox: [] });
+const fresh = freshProgress;
 
 test('every language has at least 3 well-formed scenarios', () => {
   for (const lang of languages) {
@@ -151,6 +152,14 @@ test('feedback validation, storage and summary', () => {
   assert.equal(ok.entry.language, 'Hindi');
   assert.equal(ok.entry.message.length, 600);
   assert.equal(ok.entry.rating, null);
+
+  // 'correction' lets a native speaker flag an unnatural line, and needs the phrase itself
+  assert.equal(validateFeedback({ type: 'correction', message: 'sounds odd' }).error, 'no_phrase');
+  const fix = validateFeedback({ type: 'correction', phrase: '  我要打包\u0000 ', message: 'we say it differently' });
+  assert.equal(fix.entry.phrase, '我要打包');
+  assert.equal(fix.entry.type, 'correction');
+  // a phrase on its own is enough, even with no message
+  assert.ok(validateFeedback({ type: 'correction', phrase: 'jom' }).entry);
 
   const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'bl-')), 'fb.jsonl');
   assert.deepEqual(readFeedback(file), []);

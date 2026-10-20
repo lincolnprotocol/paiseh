@@ -8,8 +8,9 @@ export const languages = [
     native: '华语',
     chip: '华语',
     htmlLang: 'zh-Hans',
-    speech: 'zh-CN', // browser voice and speech recognition locale
-    polly: true, // Amazon Polly has a Mandarin voice (Zhiyu)
+    speech: 'zh-CN', // recognition locale: broad browser support
+    voiceLocales: ['zh-SG', 'zh-CN'], // synthesis: prefer a Singapore voice when the device has one
+    polly: true, // Amazon Polly neural voice (Zhiyu), with scenario-specific prosody
     romanName: 'Pinyin',
     grandma: 'Ah Ma',
     scriptRe: /[一-鿿]/,
@@ -20,8 +21,9 @@ export const languages = [
     native: 'Bahasa Melayu',
     chip: 'Melayu',
     htmlLang: 'ms',
-    speech: 'ms-MY',
-    polly: false, // Polly has no Malay voice, so the browser voice is used
+    speech: 'ms-MY', // recognition locale: more widely available than ms-SG
+    voiceLocales: ['ms-SG', 'ms-MY'],
+    polly: false, // best matching Singapore/Malaysia device voice
     romanName: null, // Malay already uses the Latin alphabet
     grandma: 'Nenek',
     scriptRe: null,
@@ -32,8 +34,9 @@ export const languages = [
     native: 'தமிழ்',
     chip: 'தமிழ்',
     htmlLang: 'ta',
-    speech: 'ta-IN',
-    polly: false, // Polly has no Tamil voice, so the browser voice is used
+    speech: 'ta-IN', // recognition locale: broadest Tamil support
+    voiceLocales: ['ta-SG', 'ta-IN', 'ta-LK'],
+    polly: false, // best matching Singapore/Indian/Lankan device voice
     romanName: 'Romanised',
     grandma: 'Paati',
     scriptRe: /[஀-௿]/,

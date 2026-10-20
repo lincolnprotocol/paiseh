@@ -10,7 +10,8 @@ export function shuffle(list, rng = Math.random) {
 }
 
 // The right phrase plus up to `count - 1` wrong ones, shuffled.
-// Wrong options never repeat the same text or the same English meaning, so there is exactly one right answer.
+// Wrong options never repeat the same text or the same English meaning, so there is always exactly
+// one defensible right answer.
 export function buildOptions(phrase, pool, count = 4, rng = Math.random) {
   const options = [phrase];
   for (const other of shuffle(pool, rng)) {
@@ -21,9 +22,21 @@ export function buildOptions(phrase, pool, count = 4, rng = Math.random) {
   return shuffle(options, rng);
 }
 
-// kind 'meaning': show the phrase, pick the English. kind 'recall': show the English, pick the phrase.
+// Question kinds:
+//   meaning   show the phrase, pick the English
+//   recall    show the English, pick the phrase
+//   listening play the audio only, pick the phrase   (new: trains the ear, not the eye)
+export const QUESTION_KINDS = ['meaning', 'recall', 'listening'];
+
 export const makeQuestion = (kind, phrase, pool, rng) => ({
   kind,
   phrase,
   options: buildOptions(phrase, pool, 4, rng),
 });
+
+// A mixed set, so a quiz is not four of the same thing in a row.
+export function mixedQuestions(phrases, { length = 8, kinds = ['meaning', 'recall'], rng } = {}) {
+  return shuffle(phrases, rng)
+    .slice(0, length)
+    .map((phrase, n) => makeQuestion(kinds[n % kinds.length], phrase, phrases, rng));
+}

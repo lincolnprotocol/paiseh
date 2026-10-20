@@ -1,39 +1,68 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getLanguage } from './data/languages.js';
 import { getScenario } from './data/scenarios.js';
 import { postFeedback } from './lib/api.js';
-import { stopSpeaking, unlockAudio } from './lib/speech.js';
+import { translator, uiHtmlLang } from './lib/i18n.js';
+import { configureSpeech, stopSpeaking, unlockAudio } from './lib/speech.js';
 import {
   allPhrases,
   completeLesson,
-  currentStreak,
   duePhrases,
+  exportProgress,
   gradePhrase,
+  importProgress,
+  leeches,
   lessonDone,
   loadProgress,
   queueFeedback,
+  recordDrill,
   recordReview,
   recordSession,
+  resetProgress,
+  savePhrase,
   saveProgress,
 } from './lib/storage.js';
+import { useAppearance, useLayout } from './lib/useViewport.js';
+import AppShell from './components/layout/AppShell.jsx';
 import Chat from './components/Chat.jsx';
-import Feedback from './components/Feedback.jsx';
-import Home from './components/Home.jsx';
 import Lesson from './components/Lesson.jsx';
-import Review from './components/Review.jsx';
 import Summary from './components/Summary.jsx';
+import FeedbackScreen from './components/screens/FeedbackScreen.jsx';
+import HomeScreen from './components/screens/HomeScreen.jsx';
+import LearnScreen from './components/screens/LearnScreen.jsx';
+import ReviewScreen from './components/screens/ReviewScreen.jsx';
+import SettingsScreen from './components/screens/SettingsScreen.jsx';
+import SlangScreen from './components/screens/SlangScreen.jsx';
+import StatsScreen from './components/screens/StatsScreen.jsx';
+
+const TABS = ['home', 'learn', 'review', 'slang', 'stats'];
 
 export default function App() {
   const [progress, setProgress] = useState(loadProgress);
-  const [view, setView] = useState({ name: 'home' });
+  const [route, setRoute] = useState('home');
+  const [flow, setFlow] = useState(null); // { name: 'lesson' | 'chat' | 'summary', ... }
+  const [feedback, setFeedback] = useState(null); // { type, phrase }
   const [runId, setRunId] = useState(0);
   const [live, setLive] = useState(false);
 
-  const language = getLanguage(progress.settings.lang);
+  const { settings } = progress;
+  const language = getLanguage(settings.lang);
+  const t = useMemo(() => translator(settings.uiLang), [settings.uiLang]);
+  const { layout } = useLayout(settings.layout);
+
+  useAppearance({
+    theme: settings.theme,
+    fontScale: settings.fontScale,
+    htmlLang: uiHtmlLang(settings.uiLang),
+  });
+
+  useEffect(() => {
+    configureSpeech({ style: settings.voiceStyle, voiceOverrides: settings.voiceOverrides });
+  }, [settings.voiceStyle, settings.voiceOverrides]);
 
   useEffect(() => saveProgress(progress), [progress]);
 
-  // Tells the home screen whether Bedrock is answering or we are in scripted demo mode.
+  // Is Bedrock answering, or are we on scripted demo replies?
   useEffect(() => {
     fetch('/api/health')
       .then((r) => (r.ok ? r.json() : null))
@@ -41,7 +70,7 @@ export default function App() {
       .catch(() => setLive(false));
   }, []);
 
-  // Feedback that could not be sent earlier is retried when the app opens.
+  // Retry any feedback that could not be sent last time.
   useEffect(() => {
     if (progress.outbox.length === 0) return undefined;
     let cancelled = false;
@@ -65,111 +94,224 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const setSettings = (patch) => setProgress((p) => ({ ...p, settings: { ...p.settings, ...patch } }));
+  const setSettings = useCallback(
+    (patch) => setProgress((p) => ({ ...p, settings: { ...p.settings, ...patch } })),
+    [],
+  );
+
+  const changeLanguage = useCallback(
+    (id) => {
+      stopSpeaking();
+      setSettings({ lang: id });
+    },
+    [setSettings],
+  );
+
+  // Alt + 1-5 jumps between tabs. Cheap, and genuinely useful once the app is on a laptop.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!e.altKey || e.ctrlKey || e.metaKey) return;
+      const n = Number(e.key);
+      if (!Number.isInteger(n) || n < 1 || n > TABS.length) return;
+      e.preventDefault();
+      stopSpeaking();
+      setFlow(null);
+      setFeedback(null);
+      setRoute(TABS[n - 1]);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  /* ---------------------------------------------------------------- actions */
+
+  const goHome = () => {
+    stopSpeaking();
+    setFlow(null);
+    setFeedback(null);
+    setRoute('home');
+  };
+
+  const navigate = (next) => {
+    stopSpeaking();
+    setFlow(null);
+    if (next === 'feedback') {
+      setFeedback({ type: 'feature', phrase: '' });
+      return;
+    }
+    setFeedback(null);
+    setRoute(next);
+  };
 
   const startChat = (scenarioId) => {
     unlockAudio(); // inside a tap, so iOS lets later replies play on their own
     setRunId((n) => n + 1);
-    setView({ name: 'chat', scenarioId });
+    setFlow({ name: 'chat', scenarioId });
   };
 
-  // A new scenario starts with its warm-up. Once that is done, the chat opens straight away.
+  // A scenario always begins with its warm-up, until that warm-up has been done once.
   const start = (scenarioId) => {
     if (lessonDone(progress, language.id, scenarioId)) startChat(scenarioId);
     else {
       unlockAudio();
-      setView({ name: 'lesson', scenarioId });
+      setFlow({ name: 'lesson', scenarioId });
     }
   };
 
   const finishLesson = ({ phrases, skipped }) => {
-    const xp = skipped ? 5 : 15;
-    setProgress((p) => completeLesson(p, language.id, view.scenarioId, phrases, xp));
-    startChat(view.scenarioId);
+    setProgress((p) => completeLesson(p, language.id, flow.scenarioId, phrases, skipped ? 5 : 15));
+    startChat(flow.scenarioId);
   };
 
-  const goHome = () => {
-    stopSpeaking();
-    setView({ name: 'home' });
-  };
-
-  const finish = ({ scenarioId, replies, targetReplies, learned }) => {
+  const finishChat = ({ scenarioId, replies, targetReplies, learned }) => {
     const xpGained = replies * 10 + targetReplies * 5 + 20;
-    const next = recordSession(progress, language.id, { xpGained, learned });
-    setProgress(next);
-    setView({ name: 'summary', scenarioId, xpGained, learned, streak: next.streak });
+    setProgress((p) => {
+      const next = recordSession(p, language.id, { xpGained, learned });
+      setFlow({ name: 'summary', scenarioId, xpGained, learned, replies, targetReplies });
+      return next;
+    });
   };
 
-  const scenario = view.scenarioId ? getScenario(language.id, view.scenarioId) : null;
+  const drill = useCallback(
+    (kind) => setProgress((p) => recordDrill(p, p.settings.lang, kind)),
+    [],
+  );
+
+  const reportPhrase = (phrase) => {
+    stopSpeaking();
+    setFlow(null);
+    setFeedback({ type: 'correction', phrase });
+  };
+
+  /* ----------------------------------------------------------------- render */
+
+  const due = duePhrases(progress, language.id).length;
+  const scenario = flow?.scenarioId ? getScenario(language.id, flow.scenarioId) : null;
+  const immersive = Boolean(flow && scenario);
+
+  let content;
+  if (immersive && flow.name === 'lesson') {
+    content = (
+      <Lesson
+        key={`lesson-${scenario.id}`}
+        language={language}
+        scenario={scenario}
+        settings={settings}
+        onExit={goHome}
+        onDone={finishLesson}
+        onDrill={drill}
+      />
+    );
+  } else if (immersive && flow.name === 'chat') {
+    content = (
+      <Chat
+        key={runId}
+        language={language}
+        scenario={scenario}
+        settings={settings}
+        layout={layout}
+        onExit={goHome}
+        onFinish={finishChat}
+        onDrill={drill}
+      />
+    );
+  } else if (immersive && flow.name === 'summary') {
+    content = (
+      <Summary
+        language={language}
+        scenario={scenario}
+        result={flow}
+        settings={settings}
+        onAgain={() => startChat(scenario.id)}
+        onReview={() => navigate('review')}
+        onHome={goHome}
+        onReport={reportPhrase}
+        onDrill={drill}
+      />
+    );
+  } else if (feedback) {
+    content = (
+      <FeedbackScreen
+        initialType={feedback.type}
+        initialPhrase={feedback.phrase}
+        appLanguage={language.id}
+        onBack={goHome}
+        onQueue={(entry) => setProgress((p) => queueFeedback(p, entry))}
+      />
+    );
+  } else if (route === 'learn') {
+    content = <LearnScreen progress={progress} language={language} t={t} onStart={start} />;
+  } else if (route === 'review') {
+    content = (
+      <ReviewScreen
+        language={language}
+        phrases={allPhrases(progress, language.id)}
+        due={duePhrases(progress, language.id)}
+        leeches={leeches(progress, language.id)}
+        settings={settings}
+        t={t}
+        onGrade={(text, ok) => setProgress((p) => gradePhrase(p, language.id, text, ok))}
+        onXp={({ xpGained, reviewed }) =>
+          setProgress((p) => recordReview(p, language.id, { xpGained, reviewed }))
+        }
+        onDrill={drill}
+        onRoute={navigate}
+      />
+    );
+  } else if (route === 'slang') {
+    content = (
+      <SlangScreen
+        language={language}
+        settings={settings}
+        savedTexts={new Set(allPhrases(progress, language.id).map((p) => p.text))}
+        onSave={(phrase) => setProgress((p) => savePhrase(p, language.id, phrase))}
+        t={t}
+      />
+    );
+  } else if (route === 'stats') {
+    content = <StatsScreen progress={progress} language={language} t={t} />;
+  } else if (route === 'settings') {
+    content = (
+      <SettingsScreen
+        language={language}
+        settings={settings}
+        onSettings={setSettings}
+        resolvedLayout={layout}
+        t={t}
+        onExport={() => exportProgress(progress)}
+        onImport={(text) => setProgress(importProgress(text))}
+        onReset={() => setProgress(resetProgress())}
+        onRoute={navigate}
+      />
+    );
+  } else {
+    content = (
+      <HomeScreen
+        progress={progress}
+        language={language}
+        live={live}
+        t={t}
+        onRoute={navigate}
+        onStart={start}
+        onLanguage={changeLanguage}
+      />
+    );
+  }
 
   return (
-    <div className="shell">
-      {view.name === 'home' && (
-        <Home
-          progress={progress}
-          language={language}
-          streak={currentStreak(progress)}
-          live={live}
-          onStart={start}
-          onSettings={setSettings}
-          onLanguage={(id) => setSettings({ lang: id })}
-          onReview={() => {
-            unlockAudio();
-            setView({ name: 'review' });
-          }}
-          onFeedback={(type) => setView({ name: 'feedback', type })}
-        />
-      )}
-      {view.name === 'lesson' && scenario && (
-        <Lesson
-          key={`lesson-${scenario.id}`}
-          language={language}
-          scenario={scenario}
-          settings={progress.settings}
-          onExit={goHome}
-          onDone={finishLesson}
-        />
-      )}
-      {view.name === 'chat' && scenario && (
-        <Chat
-          key={runId}
-          language={language}
-          scenario={scenario}
-          settings={progress.settings}
-          onExit={goHome}
-          onFinish={finish}
-        />
-      )}
-      {view.name === 'summary' && scenario && (
-        <Summary
-          language={language}
-          scenario={scenario}
-          result={view}
-          settings={progress.settings}
-          onAgain={() => startChat(scenario.id)}
-          onReview={() => setView({ name: 'review' })}
-          onHome={goHome}
-        />
-      )}
-      {view.name === 'review' && (
-        <Review
-          language={language}
-          phrases={allPhrases(progress, language.id)}
-          due={duePhrases(progress, language.id)}
-          settings={progress.settings}
-          onGrade={(text, ok) => setProgress((p) => gradePhrase(p, language.id, text, ok))}
-          onXp={(xpGained) => setProgress((p) => recordReview(p, language.id, { xpGained }))}
-          onExit={goHome}
-        />
-      )}
-      {view.name === 'feedback' && (
-        <Feedback
-          initialType={view.type}
-          appLanguage={language.id}
-          onBack={goHome}
-          onQueue={(entry) => setProgress((p) => queueFeedback(p, entry))}
-        />
-      )}
-    </div>
+    <AppShell
+      layout={layout}
+      layoutPreference={settings.layout}
+      onLayout={(l) => setSettings({ layout: l })}
+      route={feedback ? 'settings' : route}
+      onRoute={navigate}
+      language={language}
+      onLanguage={changeLanguage}
+      due={due}
+      immersive={immersive}
+      t={t}
+    >
+      {content}
+    </AppShell>
   );
 }

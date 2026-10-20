@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { SUGGESTED_LANGUAGES, languages } from '../data/languages.js';
-import { postFeedback } from '../lib/api.js';
-import { Back, Check, Star } from './Icons.jsx';
+import { SUGGESTED_LANGUAGES, languages } from '../../data/languages.js';
+import { postFeedback } from '../../lib/api.js';
+import { Back, Check, Star } from '../Icons.jsx';
 
 const TYPES = [
   { id: 'language', label: 'Suggest a language' },
+  { id: 'correction', label: 'Fix a phrase' },
   { id: 'feature', label: 'Idea or feedback' },
   { id: 'bug', label: 'Something is off' },
   { id: 'other', label: 'Other' },
@@ -12,22 +13,23 @@ const TYPES = [
 
 const HINTS = {
   language: 'Which language, and who would you practise it with? (optional)',
+  correction: 'What should it say instead, and why does the current version sound off?',
   feature: 'What would make BiLingos better for you?',
   bug: 'What happened, and on which device or browser?',
   other: 'Tell us anything.',
 };
 
-export default function Feedback({ initialType, appLanguage, onBack, onQueue }) {
+export default function FeedbackScreen({ initialType = 'feature', initialPhrase = '', appLanguage, onBack, onQueue }) {
   const [type, setType] = useState(initialType);
   const [language, setLanguage] = useState('');
+  const [phrase, setPhrase] = useState(initialPhrase);
   const [message, setMessage] = useState('');
   const [contact, setContact] = useState('');
   const [rating, setRating] = useState(null);
-  const [status, setStatus] = useState('idle'); // idle | sending | sent | saved
+  const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
 
-  // Clear a stale validation message as soon as the form changes.
-  useEffect(() => setError(''), [type, language, message]);
+  useEffect(() => setError(''), [type, language, message, phrase]);
 
   const supported = new Set(languages.map((l) => l.name.toLowerCase()));
   const suggestions = SUGGESTED_LANGUAGES.filter((l) => !supported.has(l.toLowerCase()));
@@ -38,7 +40,11 @@ export default function Feedback({ initialType, appLanguage, onBack, onQueue }) 
       setError('Pick a language or type one.');
       return;
     }
-    if (type !== 'language' && !message.trim()) {
+    if (type === 'correction' && !phrase.trim()) {
+      setError('Paste the phrase that needs fixing.');
+      return;
+    }
+    if (type !== 'language' && type !== 'correction' && !message.trim()) {
       setError('Write a short message first.');
       return;
     }
@@ -47,6 +53,7 @@ export default function Feedback({ initialType, appLanguage, onBack, onQueue }) 
     const entry = {
       type,
       language: type === 'language' ? language.trim() : '',
+      phrase: type === 'correction' ? phrase.trim() : '',
       message: message.trim(),
       contact: contact.trim(),
       rating,
@@ -57,15 +64,15 @@ export default function Feedback({ initialType, appLanguage, onBack, onQueue }) 
       await postFeedback(entry);
       setStatus('sent');
     } catch {
-      onQueue(entry); // keep it on this device and retry next time the app opens
+      onQueue(entry); // kept on this device, retried next time the app opens
       setStatus('saved');
     }
   }
 
   if (status === 'sent' || status === 'saved') {
     return (
-      <main className="screen">
-        <div className="scroll empty">
+      <div className="page">
+        <div className="empty">
           <div className="badge" aria-hidden="true">
             <Check width={36} height={36} strokeWidth={3} />
           </div>
@@ -73,42 +80,43 @@ export default function Feedback({ initialType, appLanguage, onBack, onQueue }) 
           <p>
             {status === 'sent'
               ? 'Your feedback reached the team.'
-              : "We couldn't reach the server, so it's saved on this device and will be sent next time you open the app."}
+              : "We couldn't reach the server, so it is saved on this device and will be sent next time you open the app."}
           </p>
           <button className="primary" onClick={onBack}>
             Back to learning
           </button>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="screen">
-      <header className="chat-head plain-head">
+    <div className="page">
+      <header className="page-head row">
         <button className="icon-btn" onClick={onBack} aria-label="Back">
           <Back />
         </button>
-        <b className="head-title">Feedback</b>
+        <h1 className="page-title small">Feedback</h1>
       </header>
 
-      <form className="scroll form" onSubmit={submit}>
-        <p className="lede left">
-          BiLingos starts with Mandarin, Malay and Tamil. Tell us which language to add next, or what to improve.
+      <form className="form" onSubmit={submit}>
+        <p className="page-sub">
+          BiLingos starts with Mandarin, Malay and Tamil. Tell us which language to add next, fix a line
+          that sounds unnatural, or say what to improve.
         </p>
 
         <fieldset>
           <legend>What is this about?</legend>
           <div className="pills">
-            {TYPES.map((t) => (
+            {TYPES.map((tp) => (
               <button
-                key={t.id}
+                key={tp.id}
                 type="button"
-                className={`pill ${type === t.id ? 'on' : ''}`}
-                aria-pressed={type === t.id}
-                onClick={() => setType(t.id)}
+                className={`pill ${type === tp.id ? 'on' : ''}`}
+                aria-pressed={type === tp.id}
+                onClick={() => setType(tp.id)}
               >
-                {t.label}
+                {tp.label}
               </button>
             ))}
           </div>
@@ -139,6 +147,19 @@ export default function Feedback({ initialType, appLanguage, onBack, onQueue }) 
               aria-label="Language name"
             />
           </fieldset>
+        )}
+
+        {type === 'correction' && (
+          <label className="label">
+            The phrase that needs fixing
+            <input
+              className="field"
+              value={phrase}
+              onChange={(e) => setPhrase(e.target.value)}
+              placeholder="Paste or type the line as it appears in the app"
+              maxLength={200}
+            />
+          </label>
         )}
 
         <label className="label">
@@ -191,6 +212,6 @@ export default function Feedback({ initialType, appLanguage, onBack, onQueue }) 
           {status === 'sending' ? 'Sending…' : 'Send feedback'}
         </button>
       </form>
-    </main>
+    </div>
   );
 }

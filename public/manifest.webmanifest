@@ -4,9 +4,9 @@
   "description": "Practise Mandarin, Malay and Tamil through real-life chats, without the paiseh.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#dceee7",
-  "theme_color": "#17707a",
+  "background_color": "#eee8dc",
+  "theme_color": "#102f32",
   "icons": [
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "/bilingos-mark.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]
 }
