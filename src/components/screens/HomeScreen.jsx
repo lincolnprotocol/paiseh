@@ -2,44 +2,40 @@ import { languages } from '../../data/languages.js';
 import { scenariosFor } from '../../data/scenarios.js';
 import {
   allPhrases,
-  dailyMissions,
   duePhrases,
-  earnedAchievements,
-  historySeries,
   langState,
-  levelInfo,
-  streakAtRisk,
 } from '../../lib/storage.js';
-import MissionList from '../MissionList.jsx';
-import Sparkline from '../Sparkline.jsx';
-import { Book, Flame, Forward, Snow, Trophy } from '../Icons.jsx';
+import { Book, Forward, Sparkles } from '../Icons.jsx';
 
-export default function HomeScreen({ progress, language, streak, live, t, onRoute, onStart, onClaim, onLanguage }) {
+// Home is organised around places the learner can use their mother tongue, not around a score.
+// Points and milestones still exist for learners who enjoy them, but they live in Progress rather
+// than defining the first screen everybody sees.
+export default function HomeScreen({ progress, language, live, t, onRoute, onStart, onLanguage }) {
   const state = langState(progress, language.id);
-  const level = levelInfo(state.xp);
   const phrases = allPhrases(progress, language.id);
   const due = duePhrases(progress, language.id);
-  const missions = dailyMissions(progress);
-  const series = historySeries(progress, 14);
-  const achievements = earnedAchievements(progress).filter((a) => a.earnedAt);
   const scenarios = scenariosFor(language.id);
-  const atRisk = streakAtRisk(progress);
-
-  // The next thing worth doing, so the home screen always has one obvious action.
   const nextScenario = scenarios.find((s) => !state.lessons?.[s.id]) ?? scenarios[0];
+  const warmed = scenarios.filter((s) => state.lessons?.[s.id]).length;
+  const outsidePhrase =
+    phrases[0] ??
+    {
+      zh: { text: '最近怎么样？', english: 'How have you been lately?' },
+      ms: { text: 'Dah makan?', english: 'Have you eaten?' },
+      ta: { text: 'சாப்பிட்டியா?', english: 'Have you eaten?' },
+    }[language.id];
 
   return (
     <div className="page">
-      <header className="page-head">
-        <div>
-          <h1 className="page-title">
-            Speak your mother tongue. <span className="hl">No paiseh.</span>
-          </h1>
-          <p className="page-sub">
-            Learn the phrases first, then use them in a real conversation. Reply in English, Singlish or
-            broken {language.name} — nothing here marks you wrong.
-          </p>
-        </div>
+      <header className="page-head home-intro">
+        <span className="eyebrow">REAL-LIFE MOTHER TONGUE</span>
+        <h1 className="page-title">
+          Your mother tongue, <span className="hl">where life actually happens.</span>
+        </h1>
+        <p className="page-sub">
+          Hawker stalls, family dinners, group chats and first days at work. Learn the words, hear the
+          rhythm, then use {language.name} without the paiseh.
+        </p>
       </header>
 
       <div className="langs mobile-only" role="group" aria-label="Choose a language">
@@ -57,52 +53,26 @@ export default function HomeScreen({ progress, language, streak, live, t, onRout
 
       <div className="page-grid">
         <div className="col-main">
-          <section className="panel level-panel" aria-label={`${language.name} level`}>
-            <div className="level-top">
-              <span className="level-badge">{level.level}</span>
-              <span className="level-text">
-                <b>{level.title}</b>
-                <small>
-                  {language.name} · {state.sessions} {state.sessions === 1 ? 'chat' : 'chats'} ·{' '}
-                  {phrases.length} {phrases.length === 1 ? 'phrase' : 'phrases'}
-                </small>
-              </span>
-              <span className="level-xp">{state.xp} XP</span>
-            </div>
-            <div
-              className="meter slim"
-              role="progressbar"
-              aria-label="Progress to next level"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={level.pct}
-            >
-              <span style={{ width: `${level.pct}%` }} />
-            </div>
-            <small className="level-foot">
-              {level.span - level.into} XP to level {level.level + 1}
-            </small>
-          </section>
-
           <button className="cta-card" onClick={() => onStart(nextScenario.id)}>
             <span className={`glyph tone-${nextScenario.tone}`} lang={language.htmlLang} aria-hidden="true">
               {nextScenario.glyph}
             </span>
             <span className="cta-body">
-              <small>{state.lessons?.[nextScenario.id] ? 'Jump back in' : 'Start here'}</small>
+              <small>{state.lessons?.[nextScenario.id] ? 'CONTINUE THIS MOMENT' : 'YOUR NEXT REAL-LIFE MOMENT'}</small>
               <b>{nextScenario.title}</b>
               <span>{nextScenario.blurb}</span>
             </span>
             <Forward />
           </button>
 
-          <MissionList missions={missions} onClaim={onClaim} title={t('home.missions')} />
-
-          <section className="panel" aria-labelledby="pick-head">
-            <div className="panel-head">
-              <h2 id="pick-head">{t('home.pickMoment')}</h2>
+          <section className="moments" aria-labelledby="pick-head">
+            <div className="section-head">
+              <span>
+                <span className="eyebrow">PRACTISE WHERE IT COUNTS</span>
+                <h2 id="pick-head">{t('home.pickMoment')}</h2>
+              </span>
               <button className="link-btn" onClick={() => onRoute('learn')}>
-                See all {scenarios.length}
+                See every moment
               </button>
             </div>
             <ul className="scenario-grid compact">
@@ -116,9 +86,9 @@ export default function HomeScreen({ progress, language, streak, live, t, onRout
                       <b>{s.title}</b>
                       <small>{s.blurb}</small>
                       <small className="scenario-meta">
-                        {s.persona.name} · {s.minutes} {t('label.minutes')} ·{' '}
+                        with {s.persona.name} · {s.minutes} {t('label.minutes')} ·{' '}
                         <b className={state.lessons?.[s.id] ? 'ok' : ''}>
-                          {state.lessons?.[s.id] ? t('label.warmupDone') : t('label.startsWarmup')}
+                          {state.lessons?.[s.id] ? 'ready to revisit' : 'learn the lines first'}
                         </b>
                       </small>
                     </span>
@@ -127,74 +97,99 @@ export default function HomeScreen({ progress, language, streak, live, t, onRout
               ))}
             </ul>
           </section>
-        </div>
 
-        <div className="col-side">
-          <section className={`panel streak-panel ${atRisk ? 'warn' : ''}`} aria-label="Streak">
-            <div className="streak-top">
-              <Flame className="ico-flame" width={26} height={26} />
-              <b className="streak-num">{streak}</b>
-              <span>{t('home.streak')}</span>
-            </div>
-            <Sparkline series={series} />
-            <small className="muted">
-              {atRisk
-                ? 'Practise today to keep the streak alive.'
-                : streak > 0
-                  ? 'Already counted for today. Nice.'
-                  : 'Finish anything today to start a streak.'}
-            </small>
-            {progress.freezes > 0 && (
-              <small className="freeze">
-                <Snow width={14} height={14} /> {progress.freezes} streak{' '}
-                {progress.freezes === 1 ? 'freeze' : 'freezes'} left — one missed day is covered
-                automatically.
-              </small>
-            )}
-          </section>
-
-          <button className="review-cta" onClick={() => onRoute('review')}>
-            <Book />
-            <span>
-              <b>{t('review.title')}</b>
-              <small>
-                {phrases.length === 0
-                  ? 'Finish a warm-up to start your phrasebook'
-                  : due.length > 0
-                    ? `${due.length} ${due.length === 1 ? 'phrase' : 'phrases'} ready`
-                    : 'All caught up. Practise anyway'}
-              </small>
-            </span>
-            {due.length > 0 && <i className="due">{due.length}</i>}
-          </button>
-
-          <section className="panel" aria-labelledby="ach-head">
+          <section className="panel phrase-shelf" aria-labelledby="words-head">
             <div className="panel-head">
-              <h2 id="ach-head">
-                <Trophy width={18} height={18} /> Badges
+              <h2 id="words-head">
+                <Book width={18} height={18} /> Words you can take into real life
               </h2>
-              <button className="link-btn" onClick={() => onRoute('stats')}>
-                All
+              <button className="link-btn" onClick={() => onRoute('review')}>
+                Open phrasebook
               </button>
             </div>
-            {achievements.length === 0 ? (
+            {phrases.length === 0 ? (
               <p className="muted small-text">
-                No badges yet. Finishing your first warm-up earns one straight away.
+                Your first useful phrases will live here after one warm-up — ready for a family chat,
+                lunch order or message to a friend.
               </p>
             ) : (
-              <ul className="ach-row">
-                {achievements.slice(-6).map((a) => (
-                  <li key={a.id} className="ach-chip" title={a.blurb}>
-                    <Trophy width={14} height={14} /> {a.label}
+              <ul className="phrase-preview">
+                {phrases.slice(0, 4).map((phrase) => (
+                  <li key={phrase.text}>
+                    <b lang={language.htmlLang}>{phrase.text}</b>
+                    <span>{phrase.english}</span>
                   </li>
                 ))}
               </ul>
             )}
           </section>
+        </div>
+
+        <div className="col-side">
+          <button className="real-talk-card" onClick={() => onRoute('slang')}>
+            <Sparkles width={21} height={21} />
+            <span>
+              <small>TEXTBOOK → REAL LIFE</small>
+              <b>How people actually say it</b>
+              <span>Slang, code-switching and who each phrase is safe with.</span>
+            </span>
+            <Forward width={18} height={18} />
+          </button>
+
+          <button className="review-cta" onClick={() => onRoute('review')}>
+            <Book />
+            <span>
+              <b>Keep your phrases fresh</b>
+              <small>
+                {phrases.length === 0
+                  ? 'Your phrasebook starts after one warm-up'
+                  : due.length > 0
+                    ? `${due.length} ${due.length === 1 ? 'phrase wants' : 'phrases want'} another look`
+                    : 'Nothing due — browse what you already know'}
+              </small>
+            </span>
+            {due.length > 0 && <i className="due">{due.length}</i>}
+          </button>
+
+          <section className="panel language-footprint" aria-labelledby="footprint-head">
+            <div className="panel-head">
+              <h2 id="footprint-head">Your {language.name} footprint</h2>
+            </div>
+            <div className="footprint-grid">
+              <span>
+                <b>{state.sessions}</b>
+                <small>real-life conversations</small>
+              </span>
+              <span>
+                <b>{phrases.length}</b>
+                <small>phrases kept</small>
+              </span>
+              <span>
+                <b>{warmed}</b>
+                <small>moments ready</small>
+              </span>
+            </div>
+          </section>
+
+          <section className="panel outside-card" aria-labelledby="outside-head">
+            <span className="eyebrow">TAKE IT OUTSIDE THE APP</span>
+            <h2 id="outside-head">Use one line with a real person</h2>
+            <div className="outside-phrase">
+              <b lang={language.htmlLang}>{outsidePhrase.text}</b>
+              <span>{outsidePhrase.english}</span>
+            </div>
+            <p className="muted small-text">
+              Try it in a family chat, over lunch, or with someone beside you. Nothing to tick off and
+              nobody is keeping score.
+            </p>
+            <button className="link-btn" onClick={() => onRoute(phrases.length > 0 ? 'review' : 'learn')}>
+              {phrases.length > 0 ? 'Pick another phrase' : 'Learn a few useful lines'}
+            </button>
+          </section>
 
           <p className="foot">
             <span className={`dot ${live ? 'live' : ''}`} aria-hidden="true" />
-            {live ? 'Live AI conversation' : 'Demo mode: scripted replies'}
+            {live ? 'Live conversation' : 'Scripted demo, ready offline'}
           </p>
         </div>
       </div>

@@ -305,7 +305,7 @@ function Flashcards({ language, deck, settings, onGrade, onDrill, onFinish, leec
         <h2>
           {got} of {total} remembered
         </h2>
-        <p>+{xp} XP. Cards you missed will come back sooner.</p>
+        <p>Cards you missed will come back sooner. Nothing is lost.</p>
         <button className="primary" onClick={() => onFinish({ xp, reviewed: seen })}>
           Done
         </button>
@@ -392,7 +392,7 @@ function Quiz({ language, phrases, settings, kinds = ['meaning', 'recall'], onGr
           {score} of {questions.length} correct
         </h2>
         <p>
-          +{xp} XP. {score === questions.length ? 'Perfect round!' : 'The ones you missed will come back soon.'}
+          {score === questions.length ? 'Every phrase landed.' : 'The ones you missed will come back soon.'}
         </p>
         <button className="primary" onClick={() => onFinish({ xp, reviewed: questions.length })}>
           Done
@@ -448,7 +448,7 @@ function WritingDrill({ language, deck, settings, onGrade, onDrill, onFinish }) 
         <h2>
           {passed} of {deck.length} written
         </h2>
-        <p>+{xp} XP. Writing it is a different skill from reading it, and it sticks harder.</p>
+        <p>Writing it is a different skill from reading it, and it sticks harder.</p>
         <button className="primary" onClick={() => onFinish({ xp, reviewed: deck.length })}>
           Done
         </button>

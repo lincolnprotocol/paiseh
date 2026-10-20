@@ -96,24 +96,18 @@ export const Cog = make(
   </>,
 );
 
-/* --- progress and rewards --- */
-export const Flame = make(
-  <path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 .3 1 1 1.5 1.5 1.5C10 8 11 6 12 3z" />,
+/* --- progress and reflection --- */
+export const Rhythm = make(
+  <>
+    <path d="M3 12h3l2-5 4 10 3-7 2 2h4" />
+    <circle cx="3" cy="12" r="1" fill="currentColor" stroke="none" />
+    <circle cx="21" cy="12" r="1" fill="currentColor" stroke="none" />
+  </>,
 );
 export const Star = make(
   <polygon points="12 3 14.8 9 21 9.8 16.5 14 17.8 20.5 12 17.2 6.2 20.5 7.5 14 3 9.8 9.2 9" />,
 );
 export const Check = make(<path d="M5 12l5 5 9-10" />);
-export const Trophy = make(
-  <>
-    <path d="M8 4h8v5a4 4 0 0 1-8 0z" />
-    <path d="M8 6H5a3 3 0 0 0 3 3" />
-    <path d="M16 6h3a3 3 0 0 1-3 3" />
-    <path d="M12 13v3" />
-    <path d="M9 20h6" />
-    <path d="M10 16h4l1 4H9z" />
-  </>,
-);
 export const Target = make(
   <>
     <circle cx="12" cy="12" r="8" />

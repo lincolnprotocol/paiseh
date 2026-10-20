@@ -1,6 +1,7 @@
 import { languages } from '../../data/languages.js';
 import { usesSidebar } from '../../lib/layout.js';
-import { Cog, Flame, Star } from '../Icons.jsx';
+import BrandMark from './BrandMark.jsx';
+import { Cog } from '../Icons.jsx';
 import { LayoutToggle } from './LayoutPicker.jsx';
 import { BOTTOM_NAV, NAV } from './nav.js';
 
@@ -22,8 +23,6 @@ export default function AppShell({
   onRoute,
   language,
   onLanguage,
-  streak,
-  xp,
   due,
   immersive = false,
   t,
@@ -37,8 +36,7 @@ export default function AppShell({
       {sidebar && !immersive && (
         <nav className="sidebar" aria-label="Main">
           <div className="sidebar-brand">
-            <img src="/icon.svg" alt="" width="30" height="30" />
-            <span>BiLingos</span>
+            <BrandMark />
           </div>
 
           <div className="sidebar-langs" role="group" aria-label="Choose a language">
@@ -71,16 +69,6 @@ export default function AppShell({
           </ul>
 
           <div className="sidebar-foot">
-            <div className="sidebar-stats">
-              <span className="stat" title="Day streak">
-                <Flame className="ico-flame" />
-                <b>{streak}</b>
-              </span>
-              <span className="stat" title="Total XP">
-                <Star className="ico-star" />
-                <b>{xp}</b>
-              </span>
-            </div>
             <LayoutToggle value={layoutPreference} resolved={layout} onChange={onLayout} />
           </div>
         </nav>
@@ -90,18 +78,9 @@ export default function AppShell({
         {!sidebar && !immersive && (
           <header className="appbar">
             <div className="brand">
-              <img src="/icon.svg" alt="" width="26" height="26" />
-              <span>BiLingos</span>
+              <BrandMark compact />
             </div>
             <div className="appbar-right">
-              <span className="stat compact" title="Day streak">
-                <Flame className="ico-flame" />
-                <b>{streak}</b>
-              </span>
-              <span className="stat compact" title="Total XP">
-                <Star className="ico-star" />
-                <b>{xp}</b>
-              </span>
               <button
                 className={`icon-btn ${route === 'settings' ? 'on' : ''}`}
                 aria-label={t('nav.settings')}

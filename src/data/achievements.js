@@ -83,13 +83,13 @@ export const ACHIEVEMENTS = [
   {
     id: 'bilingual-plus',
     label: 'Why stop at one',
-    blurb: 'Earned XP in two languages',
+    blurb: 'Practised in two languages',
     test: (s) => s.languages >= 2,
   },
   {
     id: 'trilingual',
     label: 'Singapore mode',
-    blurb: 'Earned XP in all three languages',
+    blurb: 'Practised in all three languages',
     test: (s) => s.languages >= 3,
   },
   {

@@ -239,7 +239,7 @@ export default function Builder({ language, options, onSend, onBuilt }) {
         </button>
       </div>
 
-      {revealed && <p className="build-note">Answer shown. Read it aloud, then send it. It counts for less XP.</p>}
+      {revealed && <p className="build-note">Answer shown. Read it aloud, then send it. It earns fewer practice points.</p>}
       <p className="build-note kbd-hint">
         Keyboard: <kbd>1</kbd>–<kbd>9</kbd> place a word, <kbd>⌫</kbd> remove the last, <kbd>Enter</kbd> check.
       </p>

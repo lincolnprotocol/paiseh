@@ -35,6 +35,21 @@ last one, <kbd>Enter</kbd> checks. <kbd>Alt</kbd>+<kbd>1</kbd>–<kbd>5</kbd> sw
 
 Theme (light / dark / match system), text size and the interface language are all in Settings too.
 
+## A BiLingos identity of its own
+
+The interface is built around **real-life conversation**, not a mascot or competitive language-game ladder. The
+mark is an abstract `B` made from three conversation ribbons — coral, mango and cyan for the three mother-tongue
+paths. Real-life scenarios look like conversation tickets; the home screen leads with places to use the
+language and phrases the learner has retained. Instead of daily goals or reward claims, Home offers one untracked
+**take it outside the app** prompt: a useful line to try with a real person. Progress is evidence such as
+conversations attempted, phrases kept, writing and speaking — and only milestones already reached are shown.
+There is no mascot, streak counter on Home, locked reward wall, leaderboard, league, public ranking or punishment
+loop.
+
+The zero-day overlap on the rhythm chart was caused by a CSS class collision: zero bars accidentally inherited
+full-page `.empty` padding. Sparkline bars now use a private `is-empty` state, reset their own box geometry and
+clip chart overflow, so the heading stays clear in Stack, Phone frame, Comfortable and Wide layouts.
+
 ## Natural, Singapore-style voices
 
 BiLingos does not use one identical robot voice for every screen anymore:
@@ -71,7 +86,7 @@ voice, but the picker makes the best available option visible instead of silentl
    in English, then builds the phrase from word tiles (works for Tamil and Chinese without a keyboard). A wrong
    order turns the misplaced tiles red. "Tap to hear" plays individual words, because for a non-Latin script the
    sound-to-symbol link is the whole lesson. Hints go: first word, then slow audio and pronunciation, then the
-   full answer. Using the answer earns less XP. Typing or speaking a free reply is still allowed.
+   full answer. Using the answer earns fewer practice points. Typing or speaking a free reply is still allowed.
 3. **Spaced review.** Lesson and chat phrases go into the phrasebook and come back as flashcards, quizzes,
    **writing** drills and **listening** drills. Anything you forget four times is flagged as tricky and gets a
    gentler pass of its own.
@@ -90,10 +105,10 @@ voice, but the picker makes the best available option visible instead of silentl
 - **Gentle corrections** — reply in English or Singlish and get "People usually say it like this".
 - **Phrasebook + spaced repetition** — every phrase you meet is saved per language and comes back at 1, 3, 7, 14
   and 30 days. The progress screen shows which memory box everything is sitting in.
-- **Daily missions, badges, levels and XP per language**, one shared daily streak, plus **streak freezes** so one
-  busy day does not wipe out five weeks of work.
-- **Progress charts** — XP day by day for the last 30 days, per-language levels, and how much you have built,
-  written and said out loud.
+- **Take it outside the app** — Home offers one useful, untracked phrase to try in a family chat, over lunch, or
+  with somebody beside you. There is no target meter or reward to claim.
+- **Evidence-led progress** — conversations attempted, phrases kept, writing and speaking counts, activity days,
+  and the phrases that have settled into long-term memory. Only milestones already reached are shown.
 - **Backup and restore** — progress lives in localStorage with no accounts, so Settings lets you copy a backup
   and paste it back on another device.
 - **Feedback, "Suggest a language" and "Fix a phrase"** forms. Saved to `server/feedback.jsonl`. Read it with
@@ -124,7 +139,7 @@ anything fails, the app falls back to browser speech and scripted conversation, 
 | `src/data/slang.js` | Real talk entries: textbook form, everyday form, usage note, who it is safe with. **Also needs a native speaker.** |
 | `src/data/languages.js` | Language list: names, voice and recognition codes, script detection, suggested languages for feedback |
 | `src/data/scenarios.js` | Registers each language's scenarios |
-| `src/data/missions.js`, `achievements.js` | Daily mission pool and badge rules |
+| `src/data/missions.js`, `achievements.js` | Internal practice counters and private milestone rules |
 | `src/components/screens/` | Home, Practise, Review, Real talk, Progress, Settings, Feedback |
 | `src/components/` | Lesson (warm-up), Chat, Builder (word tiles), WriteIt (writing), Summary, Question, SayIt |
 | `src/components/layout/` | App shell, sidebar and bottom bar, layout picker |
@@ -139,7 +154,7 @@ To add a language: add an entry in `languages.js`, create `src/data/<id>.js` wit
 
 `npm test` runs 35 checks covering scenario data (every line has text, English and the right script, every phrase
 can be built from 2 to 9 tiles), Real talk data, the lesson and word-tile logic, writing grading and the character
-palette, pronunciation scoring, spaced repetition and leeches, daily missions, badges, streak freezes,
+palette, pronunciation scoring, spaced repetition and leeches, daily practice moves, milestones, quiet-day passes,
 backup/restore, layout resolution, UI strings, prompts and the feedback inbox. Run it after editing any scenario
 or slang file.
 

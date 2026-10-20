@@ -6,9 +6,7 @@ import { translator, uiHtmlLang } from './lib/i18n.js';
 import { configureSpeech, stopSpeaking, unlockAudio } from './lib/speech.js';
 import {
   allPhrases,
-  claimMission,
   completeLesson,
-  currentStreak,
   duePhrases,
   exportProgress,
   gradePhrase,
@@ -23,7 +21,6 @@ import {
   resetProgress,
   savePhrase,
   saveProgress,
-  totalXp,
 } from './lib/storage.js';
 import { useAppearance, useLayout } from './lib/useViewport.js';
 import AppShell from './components/layout/AppShell.jsx';
@@ -170,7 +167,7 @@ export default function App() {
     const xpGained = replies * 10 + targetReplies * 5 + 20;
     setProgress((p) => {
       const next = recordSession(p, language.id, { xpGained, learned });
-      setFlow({ name: 'summary', scenarioId, xpGained, learned, streak: currentStreak(next) });
+      setFlow({ name: 'summary', scenarioId, xpGained, learned, replies, targetReplies });
       return next;
     });
   };
@@ -188,8 +185,6 @@ export default function App() {
 
   /* ----------------------------------------------------------------- render */
 
-  const streak = currentStreak(progress);
-  const xp = totalXp(progress);
   const due = duePhrases(progress, language.id).length;
   const scenario = flow?.scenarioId ? getScenario(language.id, flow.scenarioId) : null;
   const immersive = Boolean(flow && scenario);
@@ -294,12 +289,10 @@ export default function App() {
       <HomeScreen
         progress={progress}
         language={language}
-        streak={streak}
         live={live}
         t={t}
         onRoute={navigate}
         onStart={start}
-        onClaim={(id) => setProgress((p) => claimMission(p, id))}
         onLanguage={changeLanguage}
       />
     );
@@ -314,8 +307,6 @@ export default function App() {
       onRoute={navigate}
       language={language}
       onLanguage={changeLanguage}
-      streak={streak}
-      xp={xp}
       due={due}
       immersive={immersive}
       t={t}

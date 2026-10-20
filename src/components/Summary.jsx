@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { speak } from '../lib/speech.js';
-import { Book, Check, Flame, Share, Speaker, Star } from './Icons.jsx';
+import { Book, Chat, Check, Share, Speaker } from './Icons.jsx';
 import Phrase from './Phrase.jsx';
 import SayIt from './SayIt.jsx';
 
@@ -15,7 +15,7 @@ export default function Summary({
   onReport,
   onDrill,
 }) {
-  const { xpGained, learned, streak } = result;
+  const { learned, targetReplies } = result;
   const [note, setNote] = useState('');
 
   async function share(p) {
@@ -45,14 +45,14 @@ export default function Summary({
 
           <div className="stat-grid three">
             <div className="stat-box">
-              <Star className="ico-star" />
-              <b>+{xpGained}</b>
-              <span>XP</span>
+              <Chat />
+              <b>{scenario.minutes}</b>
+              <span>minute real-life moment</span>
             </div>
             <div className="stat-box">
-              <Flame className="ico-flame" />
-              <b>{streak}</b>
-              <span>day streak</span>
+              <Check />
+              <b>{targetReplies}</b>
+              <span>replies in {language.name}</span>
             </div>
             <div className="stat-box">
               <b>{learned.length}</b>
