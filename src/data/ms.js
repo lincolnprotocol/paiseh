@@ -188,4 +188,64 @@ export const ms = [
       },
     ],
   },
+  {
+    id: 'kerja',
+    tone: 'sky',
+    glyph: 'K',
+    title: 'First day at the office',
+    blurb: 'Introduce yourself, survive the lunch invite.',
+    doneLine: 'You just handled a first day in Malay.',
+    tip: "'Awak' is the everyday 'you' with colleagues your own age. With someone clearly older or more senior, use their name or Kak / Bang instead of awak, which can sound a bit blunt.",
+    minutes: 3,
+    persona: { name: 'Faizal', native: 'Faizal', initial: 'F', role: 'Colleague at the next desk' },
+    setting:
+      'You are a friendly colleague welcoming the learner on their first day at a Singapore office. Keep it light and practical: confirm they are the new joiner, ask which department, invite them to lunch, offer help with questions, then excuse yourself for a meeting. Mixing in the occasional English word is natural.',
+    script: [
+      {
+        ai: p('Hai, awak yang baru masuk ke?', "Hi, you're the one who just joined?"),
+        suggestions: [
+          p('Ya, hari pertama saya.', 'Yes, my first day.'),
+          p('Hai, saya Aisyah.', "Hi, I'm Aisyah."),
+        ],
+        learned: [p('hari pertama', 'first day')],
+      },
+      {
+        ai: p('Selamat datang! Awak kerja bahagian mana?', 'Welcome! Which department do you work in?'),
+        suggestions: [
+          p('Saya di bahagian pemasaran.', "I'm in the marketing department."),
+          p('Saya belum pasti lagi.', "I'm not sure yet."),
+        ],
+        learned: [p('bahagian', 'department, section')],
+      },
+      {
+        ai: p('Nak makan tengah hari sama-sama?', 'Want to have lunch together?'),
+        suggestions: [
+          p('Boleh, terima kasih!', 'Sure, thank you!'),
+          p('Saya bawa bekal.', 'I brought my own food.'),
+        ],
+        learned: [p('tengah hari', 'midday')],
+      },
+      {
+        ai: p('Kalau ada soalan, tanya saya ya.', 'If you have any questions, just ask me.'),
+        suggestions: [
+          p('Terima kasih banyak.', 'Thank you very much.'),
+          p('Baik, saya tanya nanti.', "Okay, I'll ask later."),
+        ],
+        learned: [p('soalan', 'question')],
+      },
+      {
+        ai: p('Saya ada meeting dulu, jumpa nanti.', 'I have a meeting first, see you later.'),
+        suggestions: [
+          p('Okey, jumpa nanti.', 'Okay, see you later.'),
+          p('Semoga meeting lancar!', 'Hope the meeting goes smoothly!'),
+        ],
+        learned: [p('jumpa nanti', 'see you later')],
+      },
+      {
+        ai: p('Semoga hari pertama awak lancar!', 'Hope your first day goes smoothly!'),
+        suggestions: [],
+        learned: [p('lancar', 'smooth, going well')],
+      },
+    ],
+  },
 ];

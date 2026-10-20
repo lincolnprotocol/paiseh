@@ -2,18 +2,19 @@ import { useEffect, useRef, useState } from 'react';
 import { looksLikeTarget } from '../data/languages.js';
 import { fetchTurn } from '../lib/api.js';
 import { fallbackTurn } from '../lib/fallback.js';
-import { canListen, listen, speak, stopSpeaking, voiceAvailable } from '../lib/speech.js';
+import { canListen, listen, onVoicesChanged, speak, stopSpeaking, voiceAvailable } from '../lib/speech.js';
 import Builder from './Builder.jsx';
-import { Back, Mic, Send, Speaker } from './Icons.jsx';
+import { Back, Book, Mic, Send, Speaker } from './Icons.jsx';
 import Phrase from './Phrase.jsx';
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export default function Chat({ language, scenario, settings, onExit, onFinish }) {
+export default function Chat({ language, scenario, settings, layout, onExit, onFinish, onDrill }) {
   const { persona, script } = scenario;
   const totalReplies = script.length - 1; // the last scripted step is the closing line
   const opener = script[0];
   const speakOpts = { lang: language.id, slow: settings.slow };
+  const wide = layout === 'wide';
 
   const [messages, setMessages] = useState([{ id: 0, role: 'ai', ...opener.ai }]);
   const [suggestions, setSuggestions] = useState(opener.suggestions ?? []);
@@ -33,12 +34,10 @@ export default function Chat({ language, scenario, settings, onExit, onFinish })
   const logEnd = useRef(null);
 
   useEffect(() => {
-    speak(opener.ai.text, speakOpts);
-    const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
-    const refresh = () => setVoiceOk(voiceAvailable(language.id));
-    synth?.addEventListener?.('voiceschanged', refresh);
+    if (settings.autoplay) speak(opener.ai.text, speakOpts);
+    const off = onVoicesChanged(() => setVoiceOk(voiceAvailable(language.id)));
     return () => {
-      synth?.removeEventListener?.('voiceschanged', refresh);
+      off();
       stopSpeaking();
       stopMic.current?.();
     };
@@ -79,7 +78,7 @@ export default function Chat({ language, scenario, settings, onExit, onFinish })
         slow: settings.slow,
       });
     } catch {
-      await wait(650); // keep the "typing" beat so the demo feels natural
+      await wait(650); // keep the "typing" beat so the demo still feels alive
       data = fallbackTurn(language, scenario, turn, value, Boolean(chip));
     }
 
@@ -97,7 +96,7 @@ export default function Chat({ language, scenario, settings, onExit, onFinish })
     if (final) setDone(true);
     setBusy(false);
     sending.current = false;
-    speak(data.ai.text, speakOpts);
+    if (settings.autoplay) speak(data.ai.text, speakOpts);
   }
 
   function toggleMic() {
@@ -132,9 +131,127 @@ export default function Chat({ language, scenario, settings, onExit, onFinish })
 
   const progressPct = Math.round((replies / totalReplies) * 100);
 
+  const log = (
+    <div className="log" role="log" aria-live="polite">
+      {messages.map((m) =>
+        m.role === 'ai' ? (
+          <div key={m.id} className="row ai">
+            <span className={`avatar sm tone-${scenario.tone}`} lang={language.htmlLang} aria-hidden="true">
+              {persona.initial}
+            </span>
+            <div className="bubble">
+              <Phrase phrase={m} lang={language.htmlLang} showRoman={settings.roman} size="lg" />
+              <button className="icon-btn small" aria-label="Hear this again" onClick={() => speak(m.text, speakOpts)}>
+                <Speaker />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div key={m.id} className="row user">
+            <div className="bubble">
+              {m.roman || m.english ? (
+                <Phrase phrase={m} lang={language.htmlLang} showRoman={settings.roman} />
+              ) : (
+                <span className="plain">{m.text}</span>
+              )}
+            </div>
+            {m.nudge && (
+              <div className="nudge">
+                <span className="nudge-label">People usually say it like this</span>
+                <div className="nudge-body">
+                  <Phrase phrase={m.nudge} lang={language.htmlLang} showRoman={settings.roman} />
+                  <button
+                    className="icon-btn small"
+                    aria-label="Hear the natural version"
+                    onClick={() => speak(m.nudge.text, speakOpts)}
+                  >
+                    <Speaker />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ),
+      )}
+      {busy && (
+        <div className="row ai">
+          <span className={`avatar sm tone-${scenario.tone}`} lang={language.htmlLang} aria-hidden="true">
+            {persona.initial}
+          </span>
+          <div className="bubble typing" aria-label={`${persona.name} is typing`}>
+            <i />
+            <i />
+            <i />
+          </div>
+        </div>
+      )}
+      <div ref={logEnd} />
+    </div>
+  );
+
+  const composer = (
+    <div className="composer">
+      {done ? (
+        <button
+          className="primary wide"
+          onClick={() => onFinish({ scenarioId: scenario.id, replies, targetReplies, learned })}
+        >
+          See what you learned
+        </button>
+      ) : (
+        <>
+          {suggestions.length > 0 && !busy && (
+            <Builder
+              key={replies}
+              language={language}
+              options={suggestions}
+              onBuilt={() => onDrill?.('build')}
+              onSend={(phrase, assisted) => send(phrase.text, phrase, assisted)}
+            />
+          )}
+          {micNote && <p className="mic-note">{micNote}</p>}
+          {suggestions.length > 0 && !busy && <p className="or-type">Or type or say your own reply</p>}
+          <form
+            className="input-row"
+            onSubmit={(e) => {
+              e.preventDefault();
+              send(text);
+            }}
+          >
+            {canListen && (
+              <button
+                type="button"
+                className={`icon-btn round ${listening ? 'live' : ''}`}
+                onClick={toggleMic}
+                disabled={busy}
+                aria-pressed={listening}
+                aria-label={listening ? 'Stop listening' : `Speak in ${language.name}`}
+              >
+                <Mic />
+              </button>
+            )}
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={listening ? 'Listening…' : `Reply in English or ${language.name}`}
+              maxLength={120}
+              disabled={busy}
+              enterKeyHint="send"
+              autoComplete="off"
+              aria-label="Your reply"
+            />
+            <button className="send" disabled={busy || !text.trim()} aria-label="Send">
+              <Send />
+            </button>
+          </form>
+        </>
+      )}
+    </div>
+  );
+
   return (
-    <main className="screen chat">
-      <header className="chat-head">
+    <div className="immersive">
+      <header className="immersive-head chat-head">
         <button className="icon-btn" onClick={onExit} aria-label="Back to home">
           <Back />
         </button>
@@ -164,123 +281,54 @@ export default function Chat({ language, scenario, settings, onExit, onFinish })
         </p>
       )}
 
-      <div className="log scroll" role="log" aria-live="polite">
-        {messages.map((m) =>
-          m.role === 'ai' ? (
-            <div key={m.id} className="row ai">
-              <span className={`avatar sm tone-${scenario.tone}`} lang={language.htmlLang} aria-hidden="true">
-                {persona.initial}
-              </span>
-              <div className="bubble">
-                <Phrase phrase={m} lang={language.htmlLang} showRoman={settings.roman} size="lg" />
-                <button
-                  className="icon-btn small"
-                  aria-label="Hear this again"
-                  onClick={() => speak(m.text, speakOpts)}
-                >
-                  <Speaker />
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div key={m.id} className="row user">
-              <div className="bubble">
-                {m.roman || m.english ? (
-                  <Phrase phrase={m} lang={language.htmlLang} showRoman={settings.roman} />
-                ) : (
-                  <span className="plain">{m.text}</span>
-                )}
-              </div>
-              {m.nudge && (
-                <div className="nudge">
-                  <span className="nudge-label">People usually say it like this</span>
-                  <div className="nudge-body">
-                    <Phrase phrase={m.nudge} lang={language.htmlLang} showRoman={settings.roman} />
-                    <button
-                      className="icon-btn small"
-                      aria-label="Hear the natural version"
-                      onClick={() => speak(m.nudge.text, speakOpts)}
-                    >
-                      <Speaker />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ),
-        )}
-        {busy && (
-          <div className="row ai">
-            <span className={`avatar sm tone-${scenario.tone}`} lang={language.htmlLang} aria-hidden="true">
-              {persona.initial}
-            </span>
-            <div className="bubble typing" aria-label={`${persona.name} is typing`}>
-              <i />
-              <i />
-              <i />
-            </div>
-          </div>
-        )}
-        <div ref={logEnd} />
-      </div>
+      {/* On a big screen the conversation and the composer sit side by side, with a running list of
+          what the learner has picked up. On small screens it is the familiar single column. */}
+      <div className={`chat-shell ${wide ? 'split' : ''}`}>
+        <div className="chat-main">
+          <div className="chat-scroll">{log}</div>
+          {!wide && composer}
+        </div>
 
-      <footer className="composer">
-        {done ? (
-          <button
-            className="primary wide"
-            onClick={() => onFinish({ scenarioId: scenario.id, replies, targetReplies, learned })}
-          >
-            See what you learned
-          </button>
-        ) : (
-          <>
-            {suggestions.length > 0 && !busy && (
-              <Builder
-                key={replies}
-                language={language}
-                settings={settings}
-                options={suggestions}
-                onSend={(phrase, assisted) => send(phrase.text, phrase, assisted)}
-              />
-            )}
-            {micNote && <p className="mic-note">{micNote}</p>}
-            {suggestions.length > 0 && !busy && <p className="or-type">Or type or say your own reply</p>}
-            <form
-              className="input-row"
-              onSubmit={(e) => {
-                e.preventDefault();
-                send(text);
-              }}
-            >
-              {canListen && (
-                <button
-                  type="button"
-                  className={`icon-btn round ${listening ? 'live' : ''}`}
-                  onClick={toggleMic}
-                  disabled={busy}
-                  aria-pressed={listening}
-                  aria-label={listening ? 'Stop listening' : `Speak in ${language.name}`}
-                >
-                  <Mic />
-                </button>
-              )}
-              <input
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder={listening ? 'Listening…' : `Reply in English or ${language.name}`}
-                maxLength={120}
-                disabled={busy}
-                enterKeyHint="send"
-                autoComplete="off"
-                aria-label="Your reply"
-              />
-              <button className="send" disabled={busy || !text.trim()} aria-label="Send">
-                <Send />
-              </button>
-            </form>
-          </>
+        {wide && (
+          <aside className="chat-side">
+            <div className="chat-side-scroll">
+              <section className="panel">
+                <div className="panel-head">
+                  <h2>
+                    <Book width={17} height={17} /> Picked up so far
+                  </h2>
+                  <span className="count">{learned.length}</span>
+                </div>
+                {learned.length === 0 ? (
+                  <p className="muted small-text">New words appear here as the conversation goes on.</p>
+                ) : (
+                  <ul className="book">
+                    {learned.map((p) => (
+                      <li key={p.text}>
+                        <Phrase phrase={p} lang={language.htmlLang} showRoman={settings.roman} />
+                        <button
+                          className="icon-btn small"
+                          aria-label={`Hear ${p.text}`}
+                          onClick={() => speak(p.text, speakOpts)}
+                        >
+                          <Speaker />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+              <section className="panel">
+                <div className="panel-head">
+                  <h2>Where you are</h2>
+                </div>
+                <p className="muted small-text">{scenario.setting}</p>
+              </section>
+            </div>
+            {composer}
+          </aside>
         )}
-      </footer>
-    </main>
+      </div>
+    </div>
   );
 }

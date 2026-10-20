@@ -186,5 +186,65 @@ export const zh = [
       },
     ],
   },
+  {
+    id: 'work',
+    tone: 'sky',
+    glyph: '工',
+    title: 'First day at the office',
+    blurb: 'Introduce yourself, survive the lunch invite.',
+    doneLine: 'You just handled a first day in Mandarin.',
+    tip: "Singapore offices switch between English and Mandarin mid-sentence, and nobody minds. 麻烦你了 (máfan nǐ le) is the phrase that makes you sound considerate rather than demanding when a colleague helps you.",
+    minutes: 3,
+    persona: { name: 'Wei', native: '小伟', initial: '伟', role: 'Colleague at the next desk' },
+    setting:
+      'You are a friendly colleague welcoming the learner on their first day at a Singapore office. Keep it light and practical: confirm they are the new joiner, ask which department, invite them to lunch, offer help with questions, then excuse yourself for a meeting. Mixing in the occasional English word is natural.',
+    script: [
+      {
+        ai: p('你好，你是新来的实习生吧？', 'nǐ hǎo, nǐ shì xīn lái de shíxí shēng ba?', "Hi, you're the new intern, right?"),
+        suggestions: [
+          p('是的，我今天第一天。', 'shì de, wǒ jīntiān dì yī tiān.', "Yes, today is my first day."),
+          p('你好，我叫小明。', 'nǐ hǎo, wǒ jiào Xiǎomíng.', "Hello, I'm Xiaoming."),
+        ],
+        learned: [p('实习生', 'shíxí shēng', 'intern')],
+      },
+      {
+        ai: p('欢迎！你在哪个部门？', 'huānyíng! nǐ zài nǎ ge bùmén?', 'Welcome! Which department are you in?'),
+        suggestions: [
+          p('我在市场部。', 'wǒ zài shìchǎng bù.', "I'm in the marketing department."),
+          p('我还不太清楚。', 'wǒ hái bú tài qīngchu.', "I'm not too sure yet."),
+        ],
+        learned: [p('部门', 'bùmén', 'department')],
+      },
+      {
+        ai: p('中午一起吃饭吗？', 'zhōngwǔ yìqǐ chīfàn ma?', 'Want to grab lunch together?'),
+        suggestions: [
+          p('好啊，谢谢你！', 'hǎo a, xièxie nǐ!', 'Sure, thank you!'),
+          p('我带了饭。', 'wǒ dài le fàn.', 'I brought my own food.'),
+        ],
+        learned: [p('中午', 'zhōngwǔ', 'midday, noon')],
+      },
+      {
+        ai: p('有问题随时问我。', 'yǒu wèntí suíshí wèn wǒ.', 'Ask me any time if you have questions.'),
+        suggestions: [
+          p('麻烦你了。', 'máfan nǐ le.', 'Thanks for the trouble.'),
+          p('我会的，谢谢。', 'wǒ huì de, xièxie.', 'I will, thanks.'),
+        ],
+        learned: [p('随时', 'suíshí', 'any time')],
+      },
+      {
+        ai: p('我先去开会，等下聊。', 'wǒ xiān qù kāihuì, děng xià liáo.', "I'm off to a meeting, talk later."),
+        suggestions: [
+          p('好的，等下聊。', 'hǎo de, děng xià liáo.', 'Okay, talk later.'),
+          p('开会加油！', 'kāihuì jiāyóu!', 'Good luck with the meeting!'),
+        ],
+        learned: [p('开会', 'kāihuì', 'to have a meeting')],
+      },
+      {
+        ai: p('第一天顺利！', 'dì yī tiān shùnlì!', 'Hope your first day goes smoothly!'),
+        suggestions: [],
+        learned: [p('顺利', 'shùnlì', 'smooth, going well')],
+      },
+    ],
+  },
 ];
 

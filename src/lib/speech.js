@@ -84,6 +84,14 @@ export function voiceAvailable(langId) {
   return language.polly ? true : false;
 }
 
+// Browsers load voices asynchronously. Lets a component re-check once they arrive.
+export function onVoicesChanged(handler) {
+  if (typeof window === 'undefined' || !window.speechSynthesis?.addEventListener) return () => {};
+  const synth = window.speechSynthesis;
+  synth.addEventListener('voiceschanged', handler);
+  return () => synth.removeEventListener('voiceschanged', handler);
+}
+
 export async function speak(text, { lang = 'zh', slow = false } = {}) {
   if (!text) return;
   const language = getLanguage(lang);
@@ -94,7 +102,7 @@ export async function speak(text, { lang = 'zh', slow = false } = {}) {
     try {
       url = await getPollyUrl(text, slow, lang);
     } catch {
-      pollyDown = true; // stop retrying Polly this session
+      pollyDown = true; // stop retrying Polly for the rest of the session
     }
     if (url) {
       try {
@@ -107,6 +115,14 @@ export async function speak(text, { lang = 'zh', slow = false } = {}) {
     }
   }
   speakWithBrowser(text, slow, language.speech);
+}
+
+// Per-tile audio. Tapping tiles quickly should not queue up a pile-up of overlapping words, so
+// each call cancels the last. Always slow: a single word is being inspected, not listened to.
+export function speakWord(word, langId) {
+  if (!word) return;
+  stopSpeaking();
+  speak(word, { lang: langId, slow: true });
 }
 
 const Recognition =

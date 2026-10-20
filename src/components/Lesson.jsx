@@ -6,20 +6,24 @@ import { Back, Check, Speaker } from './Icons.jsx';
 import Phrase from './Phrase.jsx';
 import Question from './Question.jsx';
 import SayIt from './SayIt.jsx';
+import WriteIt from './WriteIt.jsx';
 
-// The warm-up before a conversation: learn the phrases you will need, then practise until you get them right.
-// Nothing here assumes you already know the language.
-export default function Lesson({ language, scenario, settings, onDone, onExit }) {
+// The warm-up before a conversation: learn the phrases you will need, then practise until you get
+// them right. Nothing here assumes you already know the language.
+//
+// Each round now ends with one writing question, so the warm-up covers recognising, recalling and
+// producing a phrase rather than only recognising it.
+export default function Lesson({ language, scenario, settings, onDone, onExit, onDrill }) {
   const phrases = useMemo(() => lessonPhrases(scenario), [scenario]);
   const rounds = useMemo(() => toRounds(phrases), [phrases]);
-  const [phase, setPhase] = useState('intro'); // intro | check | learn | practise | done
+  const [phase, setPhase] = useState('intro'); // intro | check | learn | practise | write | done
   const [round, setRound] = useState(0);
   const [skipped, setSkipped] = useState(false);
-  const [known, setKnown] = useState([]); // phrases proven in the placement check
+  const [known, setKnown] = useState([]);
 
   const finish = () => onDone({ phrases: skipped ? known : phrases, skipped });
 
-  const afterPractise = () => {
+  const afterWrite = () => {
     if (round + 1 < rounds.length) {
       setRound(round + 1);
       setPhase('learn');
@@ -28,110 +32,129 @@ export default function Lesson({ language, scenario, settings, onDone, onExit })
     }
   };
 
+  const pct = Math.round(
+    ((round + (phase === 'practise' ? 0.4 : phase === 'write' ? 0.8 : 0)) / rounds.length) * 100,
+  );
+
   return (
-    <main className="screen">
-      <header className="chat-head plain-head">
+    <div className="immersive">
+      <header className="immersive-head">
         <button className="icon-btn" onClick={onExit} aria-label="Back to home">
           <Back />
         </button>
         <b className="head-title">Warm-up · {scenario.title}</b>
-        {(phase === 'learn' || phase === 'practise') && (
+        {(phase === 'learn' || phase === 'practise' || phase === 'write') && (
           <div
             className="meter"
             role="progressbar"
             aria-label="Warm-up progress"
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-valuenow={Math.round(((round + (phase === 'practise' ? 0.5 : 0)) / rounds.length) * 100)}
+            aria-valuenow={pct}
           >
-            <span style={{ width: `${((round + (phase === 'practise' ? 0.5 : 0)) / rounds.length) * 100}%` }} />
+            <span style={{ width: `${pct}%` }} />
           </div>
         )}
       </header>
 
-      <div className="scroll">
-        {phase === 'intro' && (
-          <div className="empty left-align">
-            <h2>Learn it first, then chat</h2>
-            <p>
-              In this chat you will say {phrases.length} short {language.name} phrases. You'll hear each one, see what
-              it means, and practise until it sticks. About {Math.max(2, Math.round(phrases.length / 3))} minutes.
-            </p>
-            <button className="primary wide" onClick={() => setPhase('learn')}>
-              Start the warm-up
-            </button>
-            <button className="ghost wide" onClick={() => setPhase('check')}>
-              I already know some of this
-            </button>
-          </div>
-        )}
-
-        {phase === 'check' && (
-          <Check3
-            language={language}
-            settings={settings}
-            pool={phrases}
-            onPass={(proven) => {
-              setKnown(proven);
-              setSkipped(true);
-              setPhase('done');
-            }}
-            onFail={() => setPhase('learn')}
-          />
-        )}
-
-        {phase === 'learn' && (
-          <Learn
-            key={`learn-${round}`}
-            language={language}
-            settings={settings}
-            cards={rounds[round]}
-            part={`Part ${round + 1} of ${rounds.length}`}
-            onDone={() => setPhase('practise')}
-          />
-        )}
-
-        {phase === 'practise' && (
-          <Practise
-            key={`practise-${round}`}
-            language={language}
-            settings={settings}
-            cards={rounds[round]}
-            pool={phrases}
-            part={`Part ${round + 1} of ${rounds.length}`}
-            onDone={afterPractise}
-          />
-        )}
-
-        {phase === 'done' && (
-          <div className="empty">
-            <div className="badge" aria-hidden="true">
-              <Check width={36} height={36} strokeWidth={3} />
+      <div className="immersive-body">
+        <div className="immersive-inner">
+          {phase === 'intro' && (
+            <div className="empty left-align">
+              <h2>Learn it first, then chat</h2>
+              <p>
+                In this chat you will say {phrases.length} short {language.name} phrases. You will hear
+                each one, see what it means, practise it, then write it. About{' '}
+                {Math.max(2, Math.round(phrases.length / 3))} minutes.
+              </p>
+              <button className="primary wide" onClick={() => setPhase('learn')}>
+                Start the warm-up
+              </button>
+              <button className="ghost wide" onClick={() => setPhase('check')}>
+                I already know some of this
+              </button>
             </div>
-            <h2>{skipped ? 'You already know this!' : "You're ready to chat"}</h2>
-            <p>
-              {skipped
-                ? 'Nice. Skipping the warm-up.'
-                : `You learned ${phrases.length} phrases. They are saved in your phrasebook for review.`}{' '}
-              In the chat you'll build each reply from word tiles. Hints are there if you get stuck.
-            </p>
-            <button className="primary wide" onClick={finish}>
-              Start the conversation
-            </button>
-          </div>
-        )}
+          )}
+
+          {phase === 'check' && (
+            <Check3
+              language={language}
+              settings={settings}
+              pool={phrases}
+              onPass={(proven) => {
+                setKnown(proven);
+                setSkipped(true);
+                setPhase('done');
+              }}
+              onFail={() => setPhase('learn')}
+            />
+          )}
+
+          {phase === 'learn' && (
+            <Learn
+              key={`learn-${round}`}
+              language={language}
+              settings={settings}
+              cards={rounds[round]}
+              part={`Part ${round + 1} of ${rounds.length}`}
+              onDrill={onDrill}
+              onDone={() => setPhase('practise')}
+            />
+          )}
+
+          {phase === 'practise' && (
+            <Practise
+              key={`practise-${round}`}
+              language={language}
+              settings={settings}
+              cards={rounds[round]}
+              pool={phrases}
+              part={`Part ${round + 1} of ${rounds.length}`}
+              onDone={() => setPhase('write')}
+            />
+          )}
+
+          {phase === 'write' && (
+            <WriteStep
+              key={`write-${round}`}
+              language={language}
+              settings={settings}
+              cards={rounds[round]}
+              onDrill={onDrill}
+              onDone={afterWrite}
+            />
+          )}
+
+          {phase === 'done' && (
+            <div className="empty">
+              <div className="badge" aria-hidden="true">
+                <Check width={36} height={36} strokeWidth={3} />
+              </div>
+              <h2>{skipped ? 'You already know this!' : "You're ready to chat"}</h2>
+              <p>
+                {skipped
+                  ? 'Nice. Skipping the warm-up.'
+                  : `You learned ${phrases.length} phrases. They are saved in your phrasebook for review.`}{' '}
+                In the chat you will build each reply from word tiles. Hints are there if you get stuck.
+              </p>
+              <button className="primary wide" onClick={finish}>
+                Start the conversation
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-    </main>
+    </div>
   );
 }
 
-function Learn({ language, settings, cards, part, onDone }) {
+function Learn({ language, settings, cards, part, onDone, onDrill }) {
   const [i, setI] = useState(0);
   const card = cards[i];
   const last = i === cards.length - 1;
 
   useEffect(() => {
-    speak(card.text, { lang: language.id, slow: settings.slow });
+    if (settings.autoplay) speak(card.text, { lang: language.id, slow: settings.slow });
     return () => stopSpeaking();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [i]);
@@ -152,10 +175,14 @@ function Learn({ language, settings, cards, part, onDone }) {
           >
             <Speaker />
           </button>
-          <SayIt phrase={card} language={language} />
+          <SayIt
+            phrase={card}
+            language={language}
+            onScore={(score) => score >= 0.85 && onDrill?.('say')}
+          />
         </span>
       </div>
-      <p className="note">Listen, then say it out loud a couple of times. Next, we'll practise it.</p>
+      <p className="note">Listen, then say it out loud a couple of times. Next, we practise it.</p>
       <button className="primary wide" onClick={last ? onDone : () => setI(i + 1)}>
         {last ? 'Practise these' : 'Next phrase'}
       </button>
@@ -211,9 +238,28 @@ function Practise({ language, settings, cards, pool, part, onDone }) {
   );
 }
 
+// One writing question per round. Producing the script is a different skill from recognising it.
+function WriteStep({ language, settings, cards, onDone, onDrill }) {
+  const [target] = useState(() => shuffle(cards)[0]);
+  return (
+    <WriteIt
+      phrase={target}
+      language={language}
+      decoyPool={cards.filter((c) => c.text !== target.text)}
+      settings={settings}
+      onResult={(ok) => ok && onDrill?.('write')}
+      onNext={onDone}
+    />
+  );
+}
+
 // "I already know some": three questions in a row. All right means you skip the warm-up.
 function Check3({ language, settings, pool, onPass, onFail }) {
-  const [questions] = useState(() => shuffle(pool).slice(0, 3).map((p) => makeQuestion('recall', p, pool)));
+  const [questions] = useState(() =>
+    shuffle(pool)
+      .slice(0, 3)
+      .map((p, i) => makeQuestion(i === 1 ? 'listening' : 'recall', p, pool)),
+  );
   const [i, setI] = useState(0);
   const [picked, setPicked] = useState(null);
   const [score, setScore] = useState(0);
@@ -229,10 +275,7 @@ function Check3({ language, settings, pool, onPass, onFail }) {
             ? `${score} of ${questions.length} correct.`
             : `${score} of ${questions.length} correct. A short warm-up will make the chat much easier.`}
         </p>
-        <button
-          className="primary wide"
-          onClick={() => (passed ? onPass(questions.map((x) => x.phrase)) : onFail())}
-        >
+        <button className="primary wide" onClick={() => (passed ? onPass(questions.map((x) => x.phrase)) : onFail())}>
           {passed ? 'Continue' : 'Start the warm-up'}
         </button>
       </div>

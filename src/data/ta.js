@@ -183,4 +183,64 @@ export const ta = [
       },
     ],
   },
+  {
+    id: 'velai',
+    tone: 'sky',
+    glyph: 'வே',
+    title: 'First day at the office',
+    blurb: 'Introduce yourself, survive the lunch invite.',
+    doneLine: 'You just handled a first day in Tamil.',
+    tip: "Keep the -ங்க (-nga) ending at work: 'கேளுங்க' (kelunga) rather than 'கேளு' (kelu). It costs one syllable and it is the difference between friendly and abrupt with a colleague you have just met.",
+    minutes: 3,
+    persona: { name: 'Priya', native: 'பிரியா', initial: 'பி', role: 'Colleague at the next desk' },
+    setting:
+      'You are a friendly colleague welcoming the learner on their first day at a Singapore office, speaking warm colloquial Tamil. Keep it light and practical: confirm they are new, ask which team, invite them to lunch, offer help with questions, then excuse yourself for a meeting. Mixing in English words like team and meeting is completely natural.',
+    script: [
+      {
+        ai: p('ஹாய், நீங்க புதுசா வந்தீங்களா?', 'haay, neenga pudhusaa vandheengalaa?', 'Hi, are you new here?'),
+        suggestions: [
+          p('ஆமா, இன்னைக்கு முதல் நாள்.', 'aamaa, innaikku mudhal naal.', 'Yes, today is my first day.'),
+          p('ஹாய், நான் அருண்.', 'haay, naan Arun.', "Hi, I'm Arun."),
+        ],
+        learned: [p('முதல் நாள்', 'mudhal naal', 'first day')],
+      },
+      {
+        ai: p('வெல்கம்! எந்த டீம்ல இருக்கீங்க?', 'welcome! endha team-la irukkeenga?', 'Welcome! Which team are you in?'),
+        suggestions: [
+          p('நான் மார்க்கெட்டிங் டீம்.', 'naan marketing team.', "I'm in the marketing team."),
+          p('இன்னும் தெரியல.', 'innum theriyala.', "I don't know yet."),
+        ],
+        learned: [p('எந்த', 'endha', 'which')],
+      },
+      {
+        ai: p('மதியம் சேர்ந்து சாப்பிடலாமா?', 'madhiyam serndhu saappidalaamaa?', 'Shall we eat lunch together?'),
+        suggestions: [
+          p('சரி, நன்றி!', 'sari, nandri!', 'Okay, thanks!'),
+          p('நான் சாப்பாடு கொண்டு வந்தேன்.', 'naan saappaadu kondu vandhen.', 'I brought food.'),
+        ],
+        learned: [p('மதியம்', 'madhiyam', 'midday')],
+      },
+      {
+        ai: p('சந்தேகம் இருந்தா கேளுங்க.', 'sandhegam irundhaa kelunga.', 'If you have any questions, do ask.'),
+        suggestions: [
+          p('ரொம்ப நன்றி.', 'romba nandri.', 'Thank you very much.'),
+          p('சரி, கேட்கிறேன்.', 'sari, ketkiren.', "Okay, I'll ask."),
+        ],
+        learned: [p('சந்தேகம்', 'sandhegam', 'doubt, question')],
+      },
+      {
+        ai: p('எனக்கு மீட்டிங் இருக்கு, அப்புறம் பேசலாம்.', 'enakku meeting irukku, appuram pesalaam.', "I have a meeting, let's talk later."),
+        suggestions: [
+          p('சரி, அப்புறம் பேசலாம்.', 'sari, appuram pesalaam.', "Okay, let's talk later."),
+          p('மீட்டிங் நல்லா போகட்டும்!', 'meeting nallaa pogattum!', 'Hope the meeting goes well!'),
+        ],
+        learned: [p('அப்புறம்', 'appuram', 'later, afterwards')],
+      },
+      {
+        ai: p('முதல் நாள் நல்லா இருக்கும்!', 'mudhal naal nallaa irukkum!', 'Your first day will go well!'),
+        suggestions: [],
+        learned: [p('நல்லா', 'nallaa', 'well, nicely')],
+      },
+    ],
+  },
 ];

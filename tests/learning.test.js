@@ -6,9 +6,9 @@ import { scenariosFor } from '../src/data/scenarios.js';
 import { tokenize, buildBank, checkAnswer } from '../src/lib/tiles.js';
 import { lessonPhrases, toRounds } from '../src/lib/lesson.js';
 import { buildOptions, makeQuestion, shuffle } from '../src/lib/quiz.js';
-import { completeLesson, lessonDone, langState, allPhrases } from '../src/lib/storage.js';
+import { completeLesson, lessonDone, langState, allPhrases, freshProgress } from '../src/lib/storage.js';
 
-const fresh = () => ({ streak: 0, lastDay: null, settings: { roman: true, slow: false, lang: 'zh' }, langs: {}, outbox: [] });
+const fresh = freshProgress;
 const seeded = (seed) => () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
 
 test('tokenize: spaces for Malay and Tamil, word segmenter for Chinese, punctuation dropped', () => {

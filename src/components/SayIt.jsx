@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { canListen, listen, stopSpeaking } from '../lib/speech.js';
-import { similarity, verdict } from '../lib/similarity.js';
+import { scoreAttempt, verdict } from '../lib/similarity.js';
 import { Mic } from './Icons.jsx';
 
-// "Say it" button: records the learner, then compares what the browser heard with the phrase.
-export default function SayIt({ phrase, language }) {
+// "Say it": records the learner, then compares what the browser heard with the phrase.
+// Scoring now considers the romanisation as well as the script, because browser recognition for
+// Tamil and Malay is inconsistent about which one it returns — the old version handed out unfair
+// zeroes to learners who said the phrase perfectly well.
+export default function SayIt({ phrase, language, onScore }) {
   const [state, setState] = useState({ phase: 'idle' });
   const stop = useRef(null);
 
@@ -31,11 +34,13 @@ export default function SayIt({ phrase, language }) {
         },
         onEnd: () => {
           if (failed) return;
-          setState(
-            heard
-              ? { phase: 'result', heard, score: similarity(heard, phrase.text) }
-              : { phase: 'error', code: 'no-speech' },
-          );
+          if (!heard) {
+            setState({ phase: 'error', code: 'no-speech' });
+            return;
+          }
+          const { score, matched } = scoreAttempt(heard, phrase);
+          setState({ phase: 'result', heard, score, matched });
+          onScore?.(score, phrase);
         },
       });
     } catch {
@@ -67,6 +72,9 @@ export default function SayIt({ phrase, language }) {
               {state.heard}
             </span>
           </span>
+          {state.matched === 'roman' && (
+            <span className="sayit-note">Matched against the romanisation, so the sound was right.</span>
+          )}
         </p>
       )}
       {state.phase === 'error' && (
