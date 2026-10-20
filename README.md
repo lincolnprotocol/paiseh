@@ -35,6 +35,32 @@ last one, <kbd>Enter</kbd> checks. <kbd>Alt</kbd>+<kbd>1</kbd>–<kbd>5</kbd> sw
 
 Theme (light / dark / match system), text size and the interface language are all in Settings too.
 
+## Natural, Singapore-style voices
+
+BiLingos does not use one identical robot voice for every screen anymore:
+
+- **Character dialogue is role-directed.** Stall owners sound brisk and friendly, grandparents warm and
+  unhurried, friends quicker and more expressive, and colleagues relaxed but polite. These are explicit
+  authored profiles — the app never guesses a voice from somebody's name.
+- **Teaching audio stays neutral and clear.** Word tiles, hints, flashcards and pronunciation practice use a
+  separate coach profile so character acting never gets in the way of learning.
+- **Singapore voices are preferred.** For browser speech the selector tries `zh-SG`, `ms-SG` or `ta-SG` first,
+  then falls back to the best regional voice (`zh-CN`, `ms-MY`, `ta-IN` / `ta-LK`). Voice names containing
+  Natural, Neural, Premium, Enhanced, Google or Microsoft are ranked above obviously compact voices.
+- **The learner can override the choice.** Settings → Voice and conversation shows every matching voice on the
+  current device, lets the learner pick one, previews a casual local line, and offers Natural / Extra clear /
+  Lively delivery.
+- **Conversation has human timing.** Fast scripted replies pause long enough for the typing beat to feel real;
+  a slow Bedrock response does not get an artificial pause piled on top. The reply bubble paints before speech
+  begins.
+- **Mandarin Polly has natural SSML phrasing.** Punctuation gets subtle, profile-specific pauses and each role
+  gets a controlled speech rate. All SSML is generated from allowlisted profiles on the server; learner text is
+  escaped and cannot inject markup.
+
+The actual accent still depends on the voices installed on the device. Chrome and Edge commonly expose the best
+system voices. The app cannot manufacture a Singaporean Tamil or Malay accent from a low-quality operating-system
+voice, but the picker makes the best available option visible instead of silently taking the first voice returned.
+
 ## How a learner is taught (no prior knowledge needed)
 
 1. **Warm-up first.** A new scenario opens a short lesson, not the chat. It teaches every phrase the learner
@@ -84,9 +110,11 @@ Theme (light / dark / match system), text size and the interface language are al
 3. Provide AWS credentials (`aws configure`, or the variables in `.env`).
 4. Restart `npm run dev`. The home footer changes to "Live AI conversation".
 
-Amazon Polly (voice "Zhiyu") is used for Mandarin speech. Polly has no Malay or Tamil voice, so those use the
-browser's built-in voice. If a device has no Tamil or Malay voice installed, the chat shows a note instead of
-silently doing nothing. If anything fails, the app falls back to demo mode, so the demo never dies on stage.
+Amazon Polly (neural voice "Zhiyu") is used for Mandarin dialogue, with role-specific speech rates and
+punctuation-aware SSML pauses. Polly has no Malay or Tamil voice in this app, so those use the best matching
+Singapore or regional voice exposed by the browser. Settings lets the learner preview and override that choice.
+If a device has no Tamil or Malay voice installed, the chat shows a note instead of silently doing nothing. If
+anything fails, the app falls back to browser speech and scripted conversation, so the demo never dies on stage.
 
 ## Add or edit content
 
@@ -100,7 +128,8 @@ silently doing nothing. If anything fails, the app falls back to demo mode, so t
 | `src/components/screens/` | Home, Practise, Review, Real talk, Progress, Settings, Feedback |
 | `src/components/` | Lesson (warm-up), Chat, Builder (word tiles), WriteIt (writing), Summary, Question, SayIt |
 | `src/components/layout/` | App shell, sidebar and bottom bar, layout picker |
-| `src/lib/` | AI calls, offline fallback, voice in/out, progress and spaced repetition, pronunciation scoring, word tiles, writing checks, lesson and quiz helpers, layout resolution, UI strings |
+| `src/lib/` | AI calls, offline fallback, voice selection and persona delivery, progress and spaced repetition, pronunciation scoring, word tiles, writing checks, lesson and quiz helpers, layout resolution, UI strings |
+| `server/tts.js` | Safe SSML builder for natural Mandarin role profiles and punctuation-aware pauses |
 | `server/` | Express API: Bedrock chat, Polly voice, feedback inbox |
 
 To add a language: add an entry in `languages.js`, create `src/data/<id>.js` with scenarios (copy `ms.js`), add a

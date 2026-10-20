@@ -32,6 +32,9 @@ export const DEFAULT_SETTINGS = {
   theme: 'auto',
   fontScale: 'md',
   autoplay: true,
+  naturalPacing: true,
+  voiceStyle: 'natural',
+  voiceOverrides: {},
   showEnglishFirst: false,
 };
 

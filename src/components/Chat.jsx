@@ -2,7 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 import { looksLikeTarget } from '../data/languages.js';
 import { fetchTurn } from '../lib/api.js';
 import { fallbackTurn } from '../lib/fallback.js';
-import { canListen, listen, onVoicesChanged, speak, stopSpeaking, voiceAvailable } from '../lib/speech.js';
+import {
+  canListen,
+  listen,
+  onVoicesChanged,
+  onVoiceStatusChanged,
+  speak,
+  stopSpeaking,
+  voiceAvailable,
+} from '../lib/speech.js';
+import { conversationDelay, profileForScenario } from '../lib/voice.js';
 import Builder from './Builder.jsx';
 import { Back, Book, Mic, Send, Speaker } from './Icons.jsx';
 import Phrase from './Phrase.jsx';
@@ -13,7 +22,22 @@ export default function Chat({ language, scenario, settings, layout, onExit, onF
   const { persona, script } = scenario;
   const totalReplies = script.length - 1; // the last scripted step is the closing line
   const opener = script[0];
-  const speakOpts = { lang: language.id, slow: settings.slow };
+  const voiceName = settings.voiceOverrides?.[language.id] ?? '';
+  const personaProfile = profileForScenario(scenario.id);
+  const personaSpeakOpts = {
+    lang: language.id,
+    slow: settings.slow,
+    profile: personaProfile,
+    style: settings.voiceStyle,
+    voiceName,
+  };
+  const coachSpeakOpts = {
+    lang: language.id,
+    slow: settings.slow,
+    profile: 'coach',
+    style: settings.voiceStyle,
+    voiceName,
+  };
   const wide = layout === 'wide';
 
   const [messages, setMessages] = useState([{ id: 0, role: 'ai', ...opener.ai }]);
@@ -26,18 +50,34 @@ export default function Chat({ language, scenario, settings, layout, onExit, onF
   const [text, setText] = useState('');
   const [listening, setListening] = useState(false);
   const [micNote, setMicNote] = useState('');
-  const [voiceOk, setVoiceOk] = useState(() => voiceAvailable(language.id));
+  const [voiceOk, setVoiceOk] = useState(() => voiceAvailable(language.id, voiceName));
 
   const nextId = useRef(1);
   const sending = useRef(false);
   const stopMic = useRef(null);
   const logEnd = useRef(null);
+  const autoVoiceTimer = useRef(null);
+  const mounted = useRef(true);
+
+  const autoSpeak = (text) => {
+    if (!settings.autoplay || !mounted.current) return;
+    clearTimeout(autoVoiceTimer.current);
+    // Let React paint the bubble before the character starts speaking. The tiny visual lead-in is
+    // what makes this feel like a reply rather than a screen reader firing on a state update.
+    autoVoiceTimer.current = setTimeout(() => speak(text, personaSpeakOpts), 110);
+  };
 
   useEffect(() => {
-    if (settings.autoplay) speak(opener.ai.text, speakOpts);
-    const off = onVoicesChanged(() => setVoiceOk(voiceAvailable(language.id)));
+    mounted.current = true;
+    autoSpeak(opener.ai.text);
+    const refreshVoice = () => setVoiceOk(voiceAvailable(language.id, voiceName));
+    const off = onVoicesChanged(refreshVoice);
+    const offStatus = onVoiceStatusChanged((changedLang) => changedLang === language.id && refreshVoice());
     return () => {
+      mounted.current = false;
       off();
+      offStatus();
+      clearTimeout(autoVoiceTimer.current);
       stopSpeaking();
       stopMic.current?.();
     };
@@ -67,6 +107,7 @@ export default function Chat({ language, scenario, settings, layout, onExit, onF
     setText('');
     setMicNote('');
     setBusy(true);
+    const requestedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
 
     let data;
     try {
@@ -78,13 +119,20 @@ export default function Chat({ language, scenario, settings, layout, onExit, onF
         slow: settings.slow,
       });
     } catch {
-      await wait(650); // keep the "typing" beat so the demo still feels alive
       data = fallbackTurn(language, scenario, turn, value, Boolean(chip));
     }
 
+    if (settings.naturalPacing) {
+      const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const pause = conversationDelay(data.ai.text, personaProfile, now - requestedAt);
+      if (pause > 0) await wait(pause);
+    }
+    if (!mounted.current) return;
+
+    const aiId = nextId.current++;
     setMessages((m) => [
       ...m.map((x) => (x.id === userMsg.id ? { ...x, nudge: data.nudge } : x)),
-      { id: nextId.current++, role: 'ai', ...data.ai },
+      { id: aiId, role: 'ai', ...data.ai },
     ]);
     setSuggestions(data.suggestions ?? []);
     setLearned((prev) => {
@@ -96,7 +144,7 @@ export default function Chat({ language, scenario, settings, layout, onExit, onF
     if (final) setDone(true);
     setBusy(false);
     sending.current = false;
-    if (settings.autoplay) speak(data.ai.text, speakOpts);
+    autoSpeak(data.ai.text);
   }
 
   function toggleMic() {
@@ -141,7 +189,7 @@ export default function Chat({ language, scenario, settings, layout, onExit, onF
             </span>
             <div className="bubble">
               <Phrase phrase={m} lang={language.htmlLang} showRoman={settings.roman} size="lg" />
-              <button className="icon-btn small" aria-label="Hear this again" onClick={() => speak(m.text, speakOpts)}>
+              <button className="icon-btn small" aria-label="Hear this again" onClick={() => speak(m.text, personaSpeakOpts)}>
                 <Speaker />
               </button>
             </div>
@@ -163,7 +211,7 @@ export default function Chat({ language, scenario, settings, layout, onExit, onF
                   <button
                     className="icon-btn small"
                     aria-label="Hear the natural version"
-                    onClick={() => speak(m.nudge.text, speakOpts)}
+                    onClick={() => speak(m.nudge.text, coachSpeakOpts)}
                   >
                     <Speaker />
                   </button>
@@ -309,7 +357,7 @@ export default function Chat({ language, scenario, settings, layout, onExit, onF
                         <button
                           className="icon-btn small"
                           aria-label={`Hear ${p.text}`}
-                          onClick={() => speak(p.text, speakOpts)}
+                          onClick={() => speak(p.text, coachSpeakOpts)}
                         >
                           <Speaker />
                         </button>

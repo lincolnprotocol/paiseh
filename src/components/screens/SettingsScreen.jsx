@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { languages } from '../../data/languages.js';
 import { scenariosFor } from '../../data/scenarios.js';
 import { UI_LANGUAGES } from '../../lib/i18n.js';
 import { FONT_SCALES, THEMES } from '../../lib/layout.js';
 import { lessonPhrases } from '../../lib/lesson.js';
 import { auditPhrases, hasSegmenter } from '../../lib/tiles.js';
+import { availableVoices, onVoicesChanged, selectedVoiceLabel, speak, stopSpeaking } from '../../lib/speech.js';
+import { VOICE_PREVIEWS, VOICE_STYLES } from '../../lib/voice.js';
 import LayoutPicker from '../layout/LayoutPicker.jsx';
 import { Check, Download, Globe, Moon, Sun, Trash, Upload } from '../Icons.jsx';
 
 export default function SettingsScreen({
+  language,
   settings,
   onSettings,
   resolvedLayout,
@@ -153,6 +156,8 @@ export default function SettingsScreen({
           </div>
         </div>
       </section>
+
+      <VoiceSettings language={language} settings={settings} onSettings={onSettings} />
 
       <section className="panel" aria-labelledby="learn-head">
         <div className="panel-head">
@@ -301,5 +306,116 @@ export default function SettingsScreen({
         )}
       </section>
     </div>
+  );
+}
+
+
+function VoiceSettings({ language, settings, onSettings }) {
+  const [voices, setVoices] = useState(() => availableVoices(language.id));
+  const override = settings.voiceOverrides?.[language.id] ?? '';
+
+  useEffect(() => {
+    const refresh = () => setVoices(availableVoices(language.id));
+    refresh();
+    const off = onVoicesChanged(refresh);
+    return () => {
+      off();
+      stopSpeaking();
+    };
+  }, [language.id]);
+
+  const selected = selectedVoiceLabel(language.id, override);
+  const setOverride = (name) =>
+    onSettings({ voiceOverrides: { ...(settings.voiceOverrides ?? {}), [language.id]: name } });
+
+  return (
+    <section className="panel" aria-labelledby="voice-head">
+      <div className="panel-head">
+        <h2 id="voice-head">Voice and conversation</h2>
+      </div>
+      <p className="muted small-text">
+        Dialogue has a different rhythm for a friend, grandparent, stall owner and colleague. Teaching
+        audio stays steady and clear. BiLingos prefers a Singapore voice when this device provides one.
+      </p>
+
+      <div className="setting-row">
+        <span className="setting-label">
+          <b>Voice style</b>
+          <small>Changes pace and expression without changing the words</small>
+        </span>
+        <div className="seg">
+          {VOICE_STYLES.map((style) => (
+            <button
+              key={style.id}
+              className={`seg-btn ${settings.voiceStyle === style.id ? 'on' : ''}`}
+              aria-pressed={settings.voiceStyle === style.id}
+              title={style.blurb}
+              onClick={() => onSettings({ voiceStyle: style.id })}
+            >
+              {style.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="setting-row voice-row">
+        <span className="setting-label">
+          <b>{language.name} device voice</b>
+          <small>
+            {language.polly
+              ? 'AWS Polly neural is primary; this is the offline fallback'
+              : selected
+                ? `Using ${selected}`
+                : `No ${language.name} voice has loaded on this device`}
+          </small>
+        </span>
+        <select
+          className="field voice-select"
+          value={override}
+          onChange={(event) => setOverride(event.target.value)}
+          aria-label={`${language.name} device voice`}
+        >
+          <option value="">Automatic — best match</option>
+          {voices.map((voice) => (
+            <option key={`${voice.name}-${voice.lang}`} value={voice.name}>
+              {voice.name} · {voice.lang.replace('_', '-')}
+              {voice.localService ? ' · on device' : ''}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <label className="toggle">
+        <span>
+          <b>Natural conversation timing</b>
+          <small>Short human pause before a reply instead of instant robot timing</small>
+        </span>
+        <input
+          type="checkbox"
+          checked={settings.naturalPacing}
+          onChange={(event) => onSettings({ naturalPacing: event.target.checked })}
+        />
+      </label>
+
+      <div className="button-row">
+        <button
+          className="ghost small"
+          onClick={() =>
+            speak(VOICE_PREVIEWS[language.id], {
+              lang: language.id,
+              profile: 'friend',
+              style: settings.voiceStyle,
+              voiceName: override,
+            })
+          }
+        >
+          Preview a casual Singapore line
+        </button>
+      </div>
+      <p className="note">
+        Voice quality still depends on this device. Chrome and Edge usually expose the best system voices;
+        installing a high-quality {language.name} voice in the operating system makes the biggest difference.
+      </p>
+    </section>
   );
 }

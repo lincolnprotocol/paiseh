@@ -3,7 +3,7 @@ import { getLanguage } from './data/languages.js';
 import { getScenario } from './data/scenarios.js';
 import { postFeedback } from './lib/api.js';
 import { translator, uiHtmlLang } from './lib/i18n.js';
-import { stopSpeaking, unlockAudio } from './lib/speech.js';
+import { configureSpeech, stopSpeaking, unlockAudio } from './lib/speech.js';
 import {
   allPhrases,
   claimMission,
@@ -59,6 +59,10 @@ export default function App() {
     htmlLang: uiHtmlLang(settings.uiLang),
   });
 
+  useEffect(() => {
+    configureSpeech({ style: settings.voiceStyle, voiceOverrides: settings.voiceOverrides });
+  }, [settings.voiceStyle, settings.voiceOverrides]);
+
   useEffect(() => saveProgress(progress), [progress]);
 
   // Is Bedrock answering, or are we on scripted demo replies?
@@ -98,6 +102,14 @@ export default function App() {
     [],
   );
 
+  const changeLanguage = useCallback(
+    (id) => {
+      stopSpeaking();
+      setSettings({ lang: id });
+    },
+    [setSettings],
+  );
+
   // Alt + 1-5 jumps between tabs. Cheap, and genuinely useful once the app is on a laptop.
   useEffect(() => {
     const onKey = (e) => {
@@ -105,6 +117,7 @@ export default function App() {
       const n = Number(e.key);
       if (!Number.isInteger(n) || n < 1 || n > TABS.length) return;
       e.preventDefault();
+      stopSpeaking();
       setFlow(null);
       setFeedback(null);
       setRoute(TABS[n - 1]);
@@ -265,6 +278,7 @@ export default function App() {
   } else if (route === 'settings') {
     content = (
       <SettingsScreen
+        language={language}
         settings={settings}
         onSettings={setSettings}
         resolvedLayout={layout}
@@ -286,7 +300,7 @@ export default function App() {
         onRoute={navigate}
         onStart={start}
         onClaim={(id) => setProgress((p) => claimMission(p, id))}
-        onLanguage={(id) => setSettings({ lang: id })}
+        onLanguage={changeLanguage}
       />
     );
   }
@@ -299,7 +313,7 @@ export default function App() {
       route={feedback ? 'settings' : route}
       onRoute={navigate}
       language={language}
-      onLanguage={(id) => setSettings({ lang: id })}
+      onLanguage={changeLanguage}
       streak={streak}
       xp={xp}
       due={due}

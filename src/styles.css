@@ -2984,3 +2984,17 @@ a[href^='https://www.netlify.com'],
 .netlify-badge {
   display: none !important;
 }
+
+/* ---------- Natural voice settings ---------- */
+.voice-row {
+  align-items: flex-end;
+}
+
+.voice-select {
+  width: min(100%, 360px);
+  margin: 0;
+}
+
+.voice-note strong {
+  font-family: var(--font-ui);
+}
