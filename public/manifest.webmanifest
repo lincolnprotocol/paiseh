@@ -1,0 +1,12 @@
+{
+  "name": "BiLingos",
+  "short_name": "BiLingos",
+  "description": "Practise Mandarin, Malay and Tamil through real-life chats, without the paiseh.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#dceee7",
+  "theme_color": "#17707a",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
